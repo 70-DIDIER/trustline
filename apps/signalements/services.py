@@ -38,3 +38,20 @@ def creer_signalement(*, type_cible, cible, categorie_code, declarant, commentai
         invalider_cache_numero(numero_obj.numero)
 
     return signalement, numero_obj
+
+
+@transaction.atomic
+def moderer_signalement(signalement, statut):
+    """Apply a moderation status to a report and refresh the target reputation.
+
+    Shared by the REST admin API and the Django admin. Returns the report.
+    """
+    signalement.statut = statut
+    signalement.save(update_fields=["statut"])
+
+    numero_obj = signalement.numero_cible
+    if numero_obj is not None:
+        mettre_a_jour_numero(numero_obj)
+        invalider_cache_numero(numero_obj.numero)
+
+    return signalement

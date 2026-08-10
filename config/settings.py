@@ -165,6 +165,9 @@ REST_FRAMEWORK = {
         "anon": env("THROTTLE_ANON", default="60/min"),
         "user": env("THROTTLE_USER", default="240/min"),
     },
+    # Pagination for admin list endpoints (public APIViews return dicts, unaffected).
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
 }
 
 SIMPLE_JWT = {

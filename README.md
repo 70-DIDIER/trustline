@@ -226,6 +226,36 @@ _Démo (`seed_demo_data`) : 4 déclarants → **ELEVE**, 3 → **SUSPECT**, 1 se
 
 ---
 
+## 🛠️ API d'administration (dashboard back-office)
+
+En plus de l'admin Django natif (`/admin/`), une **API REST d'administration** permet à un
+front-end (Next.js) de construire son propre dashboard. **Tous ces endpoints exigent un
+token JWT d'un compte staff** (`Authorization: Bearer <token>`), obtenu via `POST /api/token/`.
+
+| Méthode | Endpoint | Rôle |
+|---|---|---|
+| `GET` | `/api/admin/signalements/` | Lister/filtrer (`?statut=`, `?categorie=`, `?type_cible=`) |
+| `POST` | `/api/admin/signalements/{id}/moderer/` | Modérer : `{"action":"valide\|conteste\|rejete"}` → recalcule la réputation |
+| `GET` | `/api/admin/numeros/` | Lister les numéros (`?niveau_risque=`) |
+| `POST` | `/api/admin/numeros/{id}/liste-blanche/` | Ajouter à la liste blanche |
+| `GET`/`POST`/`DELETE` | `/api/admin/liste-blanche/` | CRUD des numéros officiels |
+| `GET` | `/api/admin/messages/` | Messages analysés (`?verdict=`) |
+| `GET` | `/api/admin/logs/` | Logs d'analyse (`?type_cible=`, `?source=`) |
+| `GET` | `/api/admin/categories/` | Référentiel des catégories |
+| `GET` | `/api/stats/` | Synthèse dashboard (public) |
+
+Les listes sont **paginées** (`?page=`, 20/page). Exemple :
+```bash
+TOKEN=$(curl -s -X POST http://127.0.0.1:8000/api/token/ \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"motdepasse"}' | jq -r .access)
+
+curl -H "Authorization: Bearer $TOKEN" \
+  "http://127.0.0.1:8000/api/admin/signalements/?statut=en_attente"
+```
+
+---
+
 ## 🗂️ Structure du projet
 
 ```
@@ -239,7 +269,7 @@ apps/
   liens/                # analyse de liens / sites (extension Chrome)
   ussd/                 # simulateur USSD
   bot/                  # bot messagerie : services.py (logique partagée) + webhooks.py (Gupshup)
-  moderation/           # statistiques du dashboard
+  moderation/           # API admin REST (JWT) : signalements, numéros, liste blanche, stats
 ml/                     # entraînement du modèle ML (train_model.py, dataset.csv) — optionnel
 tests/                  # tests pytest (scoring, API end-to-end, webhook Gupshup, ML)
 DEPLOY.md               # runbook de déploiement VPS (Nginx + Gunicorn + HTTPS)
