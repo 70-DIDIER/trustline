@@ -161,3 +161,24 @@ REGLES: list[Regle] = [
         ],
     ),
 ]
+
+
+# --- Multilingue : fusion du lexique éwé dans les règles ci-dessus ---------
+# Les motifs éwé (apps/scoring/lexique_ewe.py) sont ajoutés aux motifs français
+# de chaque règle du même nom. Ajouter une langue = ajouter un lexique ici,
+# sans toucher au moteur ni aux endpoints.
+from apps.scoring.lexique_ewe import MOTIFS_EWE  # noqa: E402
+
+
+def _fusionner_lexique(regles: list[Regle], motifs_par_regle: dict) -> None:
+    """Append extra language patterns to matching rules (in place)."""
+    index = {regle.nom: regle for regle in regles}
+    for nom, motifs in motifs_par_regle.items():
+        regle = index.get(nom)
+        if regle is None:
+            continue
+        regle.motifs = regle.motifs + list(motifs)
+        regle._compiles += [re.compile(m, re.IGNORECASE) for m in motifs]
+
+
+_fusionner_lexique(REGLES, MOTIFS_EWE)

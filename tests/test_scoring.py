@@ -86,3 +86,39 @@ def test_montant_avec_accents_et_espaces_toujours_detecte():
     resultat = moteur.analyser("Transférez 2.000.000 FCFA sur ce compte")
     joint = " ".join(resultat.indices).lower()
     assert "transfert" in joint or "argent" in joint
+
+
+# --- Lexique éwé (multilingue) -------------------------------------------
+
+def test_lettres_speciales_ewe_survivent_normalisation():
+    # ɖ, ɔ, ŋ, ƒ, ʋ ne sont pas des accents : elles doivent être conservées.
+    n = normaliser_texte("ƉO GA ɖa ŋɔŋlɔ ƒomevi")
+    assert "ɖ" in n and "ɔ" in n
+    assert n == n.lower()
+
+
+def test_lexique_ewe_fusionne_dans_les_regles():
+    from apps.scoring.lexique_ewe import MOTIFS_EWE
+    from apps.scoring.rules import REGLES
+
+    index = {regle.nom: regle for regle in REGLES}
+    for nom, motifs in MOTIFS_EWE.items():
+        assert nom in index, f"Règle inconnue dans le lexique éwé : {nom}"
+        for motif in motifs:
+            assert motif in index[nom].motifs, f"Motif éwé non fusionné : {motif}"
+
+
+def test_arnaque_en_ewe_detectee():
+    """SMS d'arnaque en éwé -> verdict élevé (adapte si tu changes le lexique)."""
+    moteur = MoteurDetection()
+    # kaba/fifia (urgence) + "ɖo ga" (transfert) + "na code la" (code) + montant
+    texte = "Kaba! ɖo ga 50000 fcfa, na code la fifia"
+    resultat = moteur.analyser(texte)
+    assert resultat.niveau_risque == "eleve"
+
+
+def test_arnaque_en_ewe_variante_ascii_sans_lettres_speciales():
+    """L'utilisateur ne pouvant taper ɖ, la variante 'do' doit marcher aussi."""
+    moteur = MoteurDetection()
+    resultat = moteur.analyser("Kaba! do ga 50000 fcfa, na code la fifia")
+    assert resultat.niveau_risque == "eleve"
