@@ -1,0 +1,47 @@
+"""USSD simulator endpoint."""
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from apps.ussd.services import traiter_ussd
+
+
+class UssdRequestSerializer(serializers.Serializer):
+    """Input mimicking a USSD gateway callback."""
+
+    texte = serializers.CharField(
+        allow_blank=True,
+        required=False,
+        default="",
+        help_text="Chaîne USSD cumulée, ex. '2*90112233*6'. Vide = menu principal.",
+    )
+    session_id = serializers.CharField(required=False, default="demo")
+
+
+class UssdResponseSerializer(serializers.Serializer):
+    type = serializers.ChoiceField(choices=["CON", "END"])
+    message = serializers.CharField()
+
+
+class UssdSimulateView(APIView):
+    """POST /api/ussd/simulate/ — drive the simplified USSD menu."""
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        tags=["USSD"],
+        summary="Simuler un parcours USSD",
+        request=UssdRequestSerializer,
+        responses={200: UssdResponseSerializer},
+    )
+    def post(self, request):
+        entree = UssdRequestSerializer(data=request.data)
+        entree.is_valid(raise_exception=True)
+        session = entree.validated_data.get("session_id", "demo")
+        reponse = traiter_ussd(
+            entree.validated_data.get("texte", ""),
+            declarant=f"ussd:{session}",
+        )
+        return Response(UssdResponseSerializer(reponse).data)
