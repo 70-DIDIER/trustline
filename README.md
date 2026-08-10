@@ -94,6 +94,7 @@ puis relancez `migrate`. Aucun changement de code nécessaire.
 | `POST` | `/api/signalements/` | Signaler + mettre à jour la réputation |
 | `POST` | `/api/ussd/simulate/` | Simuler un parcours USSD |
 | `POST` | `/api/bot/verifier/` | Webhook bot (verdict conversationnel) |
+| `POST` | `/api/webhook/gupshup/` | Webhook WhatsApp entrant (Gupshup) — voir section dédiée |
 | `GET`  | `/api/stats/` | Statistiques agrégées (dashboard) |
 | `POST` | `/api/token/` | Obtenir un token JWT (admin/modération) |
 
@@ -132,6 +133,63 @@ Aucune réécriture des endpoints :
 from apps.scoring.engine import MoteurDetection
 moteur = MoteurDetection(ml_model=mon_modele, poids_ml=0.5)  # predict_proba OU callable
 ```
+
+---
+
+## 💬 Intégration WhatsApp (Gupshup Sandbox)
+
+Trustline peut être interrogé **directement depuis WhatsApp** : l'utilisateur colle le
+message suspect, le bot renvoie le verdict. Le pont est assuré par le webhook
+`POST /api/webhook/gupshup/`, qui réutilise exactement la même logique que
+`/api/bot/verifier/` (factorisée dans `apps/bot/services.py::analyser_pour_bot`).
+
+**Principe :** Gupshup pousse le message WhatsApp entrant sur le webhook → Trustline
+analyse le texte → la réponse est renvoyée à l'utilisateur via l'API sortante de Gupshup.
+
+### 1. Configurer la clé API dans `.env`
+```env
+GUPSHUP_API_KEY=ta_cle_gupshup_sandbox
+GUPSHUP_SOURCE=917834811114        # numéro sandbox Gupshup (défaut fourni)
+GUPSHUP_APP_NAME=TrustLine
+```
+
+### 2. Exposer le webhook publiquement
+Gupshup doit pouvoir atteindre ton serveur. En local, utilise un tunnel :
+```bash
+# exemple avec ngrok
+ngrok http 8000
+```
+En production, c'est ton domaine VPS (voir `DEPLOY.md`).
+
+### 3. Déclarer l'URL du webhook côté Gupshup
+Dans la console Gupshup (**Sandbox → Callback URL**), renseigne :
+```
+https://<ton-domaine-ou-tunnel>/api/webhook/gupshup/
+```
+
+### 4. Tester
+Envoie « join <mot-sandbox> » au numéro sandbox depuis ton WhatsApp, puis colle un
+message d'arnaque. Tu peux aussi simuler l'appel entrant sans WhatsApp :
+```bash
+curl -X POST http://127.0.0.1:8000/api/webhook/gupshup/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "app":"TrustLine","type":"message",
+    "payload":{
+      "source":"22890429399","type":"text",
+      "payload":{"text":"Felicitations vous avez gagne 500000 FCFA, envoyez votre code OTP"},
+      "sender":{"phone":"22890429399","name":"Kofi"}
+    }
+  }'
+```
+
+### Comportement (robuste pour un webhook)
+- **Répond toujours HTTP 200** (accusé de réception) — Gupshup ne réémet pas en boucle.
+- **Envoi WhatsApp asynchrone** (thread) : l'accusé part immédiatement.
+- **Message sans texte** (image seule) → réponse « je ne peux analyser que du texte ».
+- **Erreur / timeout Gupshup** → journalisée, jamais propagée.
+- **Logs clairs** à chaque étape (logger `trustline.gupshup`, visibles dans la console).
+- **CSRF désactivé** (webhook externe, `authentication_classes = []`).
 
 ---
 

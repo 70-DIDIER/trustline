@@ -22,6 +22,9 @@ psycopg[binary]>=3.1,<4.0
 # CORS (extension Chrome + Web Next.js)
 django-cors-headers>=4.3,<4.5
 
+# Appels HTTP sortants (webhook WhatsApp Gupshup)
+requests>=2.31,<3.0
+
 # Tests
 pytest>=8.0,<9.0
 pytest-django>=4.8,<4.10

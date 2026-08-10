@@ -1,7 +1,8 @@
 """Generic messaging-bot webhook.
 
 Reuses the same message analysis as /api/messages/analyser/ but formats the
-verdict for a conversational display (emoji + short text).
+verdict for a conversational display (emoji + short text). The formatting logic
+lives in apps/bot/services.py so it can be shared with the WhatsApp webhook.
 """
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -9,19 +10,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.bot.services import analyser_pour_bot
 from apps.core.constants import NiveauRisque
-from apps.messages.services import analyser_message
-
-_EMOJI = {
-    NiveauRisque.FAIBLE: "✅",
-    NiveauRisque.SUSPECT: "⚠️",
-    NiveauRisque.ELEVE: "🚨",
-}
-_ENTETE = {
-    NiveauRisque.FAIBLE: "Aucun danger évident",
-    NiveauRisque.SUSPECT: "Message suspect",
-    NiveauRisque.ELEVE: "Attention, arnaque probable",
-}
 
 
 class BotRequestSerializer(serializers.Serializer):
@@ -50,20 +40,5 @@ class BotVerifierView(APIView):
         entree = BotRequestSerializer(data=request.data)
         entree.is_valid(raise_exception=True)
 
-        verdict = analyser_message(entree.validated_data["texte"], source="bot")
-        niveau = verdict["niveau_risque"]
-
-        lignes = [f"{_EMOJI[niveau]} {_ENTETE[niveau]} ({verdict['score']}/100)"]
-        if verdict["indices"]:
-            lignes.append("")
-            lignes.extend(f"• {indice}" for indice in verdict["indices"])
-        lignes.append("")
-        lignes.append(verdict["recommandation"])
-
-        return Response(
-            {
-                "reponse": "\n".join(lignes),
-                "niveau_risque": niveau,
-                "score": verdict["score"],
-            }
-        )
+        resultat = analyser_pour_bot(entree.validated_data["texte"], source="bot")
+        return Response(resultat)

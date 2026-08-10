@@ -190,7 +190,68 @@ SPECTACULAR_SETTINGS = {
 CORS_ALLOW_ALL_ORIGINS = env("CORS_ALLOW_ALL_ORIGINS")
 
 # ---------------------------------------------------------------------------
+# Sécurité production (HTTPS)
+# ---------------------------------------------------------------------------
+# La plupart de ces réglages s'ACTIVENT automatiquement quand DEBUG=False, et
+# restent NEUTRES en dev local (DEBUG=True). Chacun est surchargeable via .env.
+_PROD = not DEBUG
+
+# Origines de confiance pour le CSRF (ex. connexion à /admin/ derrière HTTPS).
+# Django 5 exige le schéma : "https://api.mondomaine.tg".
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+
+# Derrière Nginx : faire confiance à l'en-tête X-Forwarded-Proto pour que Django
+# sache que la requête d'origine est en HTTPS (évite les boucles de redirection).
+if env.bool("USE_X_FORWARDED_PROTO", default=_PROD):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Rediriger tout le trafic HTTP vers HTTPS (en prod).
+# ⚠️ À laisser False tant que le certificat HTTPS n'est pas encore posé (certbot).
+SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=_PROD)
+
+# Cookies transmis uniquement en HTTPS.
+SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=_PROD)
+CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=_PROD)
+
+# HSTS : forcer HTTPS côté navigateur (1 an en prod). 0 = désactivé (dev).
+SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000 if _PROD else 0)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=_PROD)
+SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=_PROD)
+
+# Durcissements généraux (sûrs dans tous les cas).
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SESSION_COOKIE_HTTPONLY = True
+X_FRAME_OPTIONS = "DENY"
+
+# ---------------------------------------------------------------------------
 # Trustline detection thresholds (shared by scoring + reputation)
 # ---------------------------------------------------------------------------
 SEUIL_SUSPECT = env.int("SEUIL_SUSPECT", default=30)   # score >= this -> "suspect"
 SEUIL_ELEVE = env.int("SEUIL_ELEVE", default=70)       # score >= this -> "eleve"
+
+# ---------------------------------------------------------------------------
+# Gupshup WhatsApp (Sandbox) — webhook /api/webhook/gupshup/
+# ---------------------------------------------------------------------------
+GUPSHUP_API_KEY = env("GUPSHUP_API_KEY", default="")
+GUPSHUP_SOURCE = env("GUPSHUP_SOURCE", default="917834811114")  # sandbox number
+GUPSHUP_APP_NAME = env("GUPSHUP_APP_NAME", default="TrustLine")
+GUPSHUP_API_URL = env("GUPSHUP_API_URL", default="https://api.gupshup.io/wa/api/v1/msg")
+GUPSHUP_TIMEOUT = env.int("GUPSHUP_TIMEOUT", default=10)  # seconds for outbound call
+
+# ---------------------------------------------------------------------------
+# Logging — console output so webhook/debug logs are visible during the demo
+# ---------------------------------------------------------------------------
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {"format": "[{levelname}] {name}: {message}", "style": "{"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "simple"},
+    },
+    "loggers": {
+        # Trustline application logs (webhook Gupshup, etc.).
+        "trustline": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
+}

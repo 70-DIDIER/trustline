@@ -14,6 +14,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
+from apps.bot.webhooks import GupshupWebhookView
 from apps.core.views import health
 
 urlpatterns = [
@@ -21,6 +22,9 @@ urlpatterns = [
 
     # --- Health check ---
     path("api/health/", health, name="health"),
+
+    # --- Webhook WhatsApp (Gupshup Sandbox) ---
+    path("api/webhook/gupshup/", GupshupWebhookView.as_view(), name="webhook-gupshup"),
 
     # --- Auth JWT (endpoints admin / modération) ---
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
