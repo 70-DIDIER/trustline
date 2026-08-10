@@ -229,6 +229,12 @@ X_FRAME_OPTIONS = "DENY"
 SEUIL_SUSPECT = env.int("SEUIL_SUSPECT", default=30)   # score >= this -> "suspect"
 SEUIL_ELEVE = env.int("SEUIL_ELEVE", default=70)       # score >= this -> "eleve"
 
+# Modèle ML optionnel (voir apps/scoring/ml.py + ml/train_model.py).
+# Vide = moteur en mode règles uniquement. Renseigner le chemin d'un .joblib
+# entraîné pour activer le mélange règles + ML automatiquement.
+ML_MODEL_PATH = env("ML_MODEL_PATH", default="")
+ML_POIDS = env.float("ML_POIDS", default=0.5)  # part du ML dans le mélange (0..1)
+
 # ---------------------------------------------------------------------------
 # Gupshup WhatsApp (Sandbox) — webhook /api/webhook/gupshup/
 # ---------------------------------------------------------------------------

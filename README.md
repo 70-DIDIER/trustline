@@ -126,13 +126,33 @@ Le cœur est `apps/scoring/` :
   officiel, lien raccourci/suspect.
 - **`engine.py`** — la classe `MoteurDetection` combine le **score des règles**, la
   **réputation communautaire** injectée, et un **modèle ML optionnel**.
+- **`lexique_ewe.py`** — lexique **éwé** fusionné automatiquement dans les règles
+  (base à valider par un locuteur natif). Ajouter une langue = ajouter un lexique,
+  sans toucher au moteur.
 
-### Brancher un modèle ML (scikit-learn) plus tard
-Aucune réécriture des endpoints :
+### Robustesse aux SMS réels
+`apps/core/utils.normaliser_texte` normalise le texte **avant** les règles :
+suppression des accents, minuscules, espaces insécables/zero-width. Un vrai SMS
+togolais tapé « à l'arrache » (`FELICITATIONS envoyez votre code otp`, sans accents,
+en majuscules) est détecté aussi sûrement que sa version soignée. Les lettres
+spéciales éwé (ɔ ɖ ƒ ŋ ʋ) sont préservées, avec tolérance de la variante ASCII clavier.
+
+### Brancher un modèle ML (scikit-learn)
+Aucune réécriture des endpoints. Le moteur accepte un modèle sklearn
+(`predict_proba`) ou un simple callable :
 ```python
 from apps.scoring.engine import MoteurDetection
-moteur = MoteurDetection(ml_model=mon_modele, poids_ml=0.5)  # predict_proba OU callable
+moteur = MoteurDetection(ml_model=mon_modele, poids_ml=0.5)
 ```
+En pratique, tout est scaffoldé dans **`ml/`** :
+```bash
+pip install -r requirements-ml.txt      # deps ML (séparées, hors serveur)
+python ml/train_model.py                # entraîne -> ml/trustline_model.joblib
+# puis dans .env :  ML_MODEL_PATH=ml/trustline_model.joblib
+```
+Au démarrage, `apps/scoring/apps.py::ready()` charge le modèle et l'active
+automatiquement (mélange règles + ML). Fichier absent → retour au mode règles.
+Détails : **`ml/README.md`**.
 
 ---
 
@@ -212,15 +232,17 @@ _Démo (`seed_demo_data`) : 4 déclarants → **ELEVE**, 3 → **SUSPECT**, 1 se
 config/                 # settings, urls, wsgi/asgi
 apps/
   core/                 # référentiels (catégories, liste blanche, logs) + utils partagés
-  scoring/              # MoteurDetection (règles + interface ML)
+  scoring/              # MoteurDetection (règles + lexique éwé + interface ML)
   numeros/              # vérification / consultation de numéros
   signalements/         # signalement communautaire + réputation
   messages/             # analyse SMS / messages (label "messages_app")
   liens/                # analyse de liens / sites (extension Chrome)
   ussd/                 # simulateur USSD
-  bot/                  # webhook bot de messagerie
+  bot/                  # bot messagerie : services.py (logique partagée) + webhooks.py (Gupshup)
   moderation/           # statistiques du dashboard
-tests/                  # tests pytest (scoring + API end-to-end)
+ml/                     # entraînement du modèle ML (train_model.py, dataset.csv) — optionnel
+tests/                  # tests pytest (scoring, API end-to-end, webhook Gupshup, ML)
+DEPLOY.md               # runbook de déploiement VPS (Nginx + Gunicorn + HTTPS)
 ```
 
 ---
@@ -230,8 +252,12 @@ tests/                  # tests pytest (scoring + API end-to-end)
 ```bash
 pytest
 ```
-Couvre le moteur de détection et les endpoints principaux (health, numéros, messages,
-signalements, liens, USSD, bot).
+**35 tests** couvrant :
+- le **moteur de détection** (règles, robustesse sans-accents/majuscules/espaces, lexique éwé) ;
+- les **endpoints** end-to-end (health, numéros + formats variés, messages, signalements
+  anti-abus, liens, USSD, bot) ;
+- le **webhook WhatsApp Gupshup** (parsing, cas limites, envoi sortant) ;
+- le **chargement du modèle ML** (fallback règles si absent).
 
 ---
 
@@ -242,4 +268,13 @@ signalements, liens, USSD, bot).
 - **JWT** pour les endpoints d'administration / modération.
 - **Aucune collecte de carnet d'adresses** — la réputation repose uniquement sur les
   signalements volontaires et la liste blanche. Les déclarants sont anonymisés.
-```
+- **Durcissement HTTPS automatique en prod** (`DEBUG=False`) : redirection SSL,
+  cookies `Secure`, HSTS, `CSRF_TRUSTED_ORIGINS`, `SECURE_PROXY_SSL_HEADER` (Nginx),
+  `X_FRAME_OPTIONS=DENY`. Neutre en dev, surchargeable via `.env`.
+
+---
+
+## 🚢 Déploiement
+
+Runbook complet pour un VPS Ubuntu (sans Docker) : **`DEPLOY.md`**
+— Gunicorn + Nginx + PostgreSQL + Redis + systemd + Let's Encrypt.

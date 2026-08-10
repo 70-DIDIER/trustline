@@ -23,3 +23,6 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+
+# ML (modèle entraîné, régénérable via ml/train_model.py)
+ml/*.joblib

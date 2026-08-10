@@ -159,19 +159,40 @@ sudo tail -f /var/log/nginx/error.log             # logs Nginx
 
 ---
 
-## ⚠️ Notes importantes (à ne pas oublier avec `DEBUG=False`)
+## 🔒 Sécurité HTTPS (déjà gérée par `settings.py`)
 
-1. **CSRF admin en HTTPS** — Django 5 exige `CSRF_TRUSTED_ORIGINS` pour se
-   connecter à `/admin/` derrière un domaine HTTPS. Ce réglage n'est pas encore
-   lu depuis le `.env`. Deux options :
-   - me demander d'ajouter le support `CSRF_TRUSTED_ORIGINS` dans
-     `config/settings.py` (recommandé), **ou**
-   - l'ajouter à la main dans `settings.py` :
-     `CSRF_TRUSTED_ORIGINS = ["https://VOTRE_DOMAINE"]`.
-2. **Fichiers statiques** — servis par Nginx (`/static/`). `collectstatic` est
+Quand `DEBUG=False`, `config/settings.py` active automatiquement : redirection
+HTTPS, cookies `Secure`, HSTS (1 an), `SECURE_PROXY_SSL_HEADER` (pour Nginx),
+`X_FRAME_OPTIONS=DENY`, etc. Chaque réglage est surchargeable via `.env`.
+
+**La seule variable obligatoire à renseigner** pour l'admin en HTTPS :
+```env
+CSRF_TRUSTED_ORIGINS=https://VOTRE_DOMAINE,https://www.VOTRE_DOMAINE
+```
+
+**Ordre recommandé avec certbot** (évite une boucle de redirection avant que le
+certificat existe) :
+```env
+# 1) AVANT certbot (HTTP encore seul) — dans .env :
+SECURE_SSL_REDIRECT=False
+```
+```bash
+# 2) Poser le certificat :
+sudo certbot --nginx -d VOTRE_DOMAINE
+```
+```env
+# 3) APRÈS certbot — retirer la ligne ci-dessus (ou la passer à True) puis :
+```
+```bash
+sudo systemctl restart trustline
+```
+
+## ⚠️ Autres notes (`DEBUG=False`)
+
+1. **Fichiers statiques** — servis par Nginx (`/static/`). `collectstatic` est
    obligatoire à chaque déploiement car Django ne sert plus les statiques quand
    `DEBUG=False`.
-3. **Redis** — ici on l'utilise vraiment en prod (`CACHE_URL`). Le rate limiting
+2. **Redis** — ici on l'utilise vraiment en prod (`CACHE_URL`). Le rate limiting
    et le cache des vérifications de numéros s'appuient dessus.
-4. **Secrets** — `.env` n'est pas versionné (`.gitignore`). Ne jamais commiter la
+3. **Secrets** — `.env` n'est pas versionné (`.gitignore`). Ne jamais commiter la
    `SECRET_KEY` ni le mot de passe DB.

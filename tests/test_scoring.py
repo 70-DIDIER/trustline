@@ -122,3 +122,21 @@ def test_arnaque_en_ewe_variante_ascii_sans_lettres_speciales():
     moteur = MoteurDetection()
     resultat = moteur.analyser("Kaba! do ga 50000 fcfa, na code la fifia")
     assert resultat.niveau_risque == "eleve"
+
+
+# --- Intégration ML (chargement optionnel) -------------------------------
+
+def test_charger_modele_sans_chemin_retourne_none(settings):
+    """Sans ML_MODEL_PATH, le moteur reste en mode règles (pas d'erreur)."""
+    from apps.scoring.ml import charger_modele
+
+    settings.ML_MODEL_PATH = ""
+    assert charger_modele() is None
+
+
+def test_charger_modele_chemin_invalide_retourne_none(settings):
+    """Un chemin illisible ne casse pas le démarrage → fallback règles."""
+    from apps.scoring.ml import charger_modele
+
+    settings.ML_MODEL_PATH = "chemin/inexistant/modele.joblib"
+    assert charger_modele() is None
