@@ -1,5 +1,5 @@
 """Endpoint for creating community reports."""
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -22,6 +22,29 @@ class CreerSignalementView(APIView):
         summary="Signaler un numéro / SMS / lien / site / message",
         request=CreerSignalementSerializer,
         responses={201: SignalementSerializer},
+        examples=[
+            OpenApiExample(
+                "Signaler un numéro (demande OTP)",
+                value={
+                    "type_cible": "numero",
+                    "cible": "90112233",
+                    "categorie": "demande_otp_pin",
+                    "declarant_id": "user-42",
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Signaler un lien de phishing",
+                value={
+                    "type_cible": "lien",
+                    "cible": "http://ecobank-tg.xyz/login",
+                    "categorie": "phishing",
+                    "declarant_id": "user-77",
+                    "commentaire": "Reçu par SMS ce matin",
+                },
+                request_only=True,
+            ),
+        ],
     )
     def post(self, request):
         entree = CreerSignalementSerializer(data=request.data)

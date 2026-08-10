@@ -1,5 +1,5 @@
 """USSD simulator endpoint."""
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -35,6 +35,12 @@ class UssdSimulateView(APIView):
         summary="Simuler un parcours USSD",
         request=UssdRequestSerializer,
         responses={200: UssdResponseSerializer},
+        examples=[
+            OpenApiExample("Menu principal (composition initiale)", value={"texte": ""}, request_only=True),
+            OpenApiExample("1 → vérifier un numéro", value={"texte": "1*90112233"}, request_only=True),
+            OpenApiExample("2 → signaler (numéro + catégorie OTP)", value={"texte": "2*79887766*6"}, request_only=True),
+            OpenApiExample("3 → conseils sécurité", value={"texte": "3"}, request_only=True),
+        ],
     )
     def post(self, request):
         entree = UssdRequestSerializer(data=request.data)

@@ -175,13 +175,33 @@ SIMPLE_JWT = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "Trustline API",
     "DESCRIPTION": (
-        "API de la plateforme Trustline (TOGOSHIELD) — détection, prévention "
-        "et signalement communautaire des arnaques numériques au Togo. "
-        "Verdicts normalisés : score (0-100), niveau_risque "
-        "(faible | suspect | eleve), indices, recommandation."
+        "API de la plateforme **Trustline** (TOGOSHIELD) — détection, prévention "
+        "et signalement communautaire des arnaques numériques au Togo.\n\n"
+        "**Format de verdict normalisé** (partout) : `score` (0-100), "
+        "`niveau_risque` (`faible` | `suspect` | `eleve`), `indices` (liste "
+        "explicative), `recommandation` (conseil court).\n\n"
+        "Multicanal : Web/API, extension navigateur (liens), USSD, bot de "
+        "messagerie et WhatsApp (Gupshup)."
     ),
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "CONTACT": {"name": "Équipe Trustline", "email": "contact@trustline.tg"},
+    "TAGS": [
+        {"name": "Système", "description": "Santé du service."},
+        {"name": "Numéros", "description": "Vérification et consultation des numéros (liste blanche + réputation)."},
+        {"name": "Messages", "description": "Analyse de SMS / messages par le moteur de détection."},
+        {"name": "Liens", "description": "Analyse d'URL / sites (extension navigateur)."},
+        {"name": "Signalements", "description": "Signalement communautaire et mise à jour de la réputation."},
+        {"name": "USSD", "description": "Parcours USSD simplifié (menu vérifier / signaler / conseils)."},
+        {"name": "Bot", "description": "Webhook bot générique (verdict conversationnel)."},
+        {"name": "WhatsApp (Gupshup)", "description": "Webhook WhatsApp entrant via Gupshup Sandbox."},
+        {"name": "Statistiques", "description": "Agrégats pour le dashboard."},
+    ],
+    "SWAGGER_UI_SETTINGS": {
+        "docExpansion": "list",
+        "defaultModelsExpandDepth": 0,
+        "persistAuthorization": True,
+    },
 }
 
 # ---------------------------------------------------------------------------

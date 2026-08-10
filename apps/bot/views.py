@@ -4,7 +4,7 @@ Reuses the same message analysis as /api/messages/analyser/ but formats the
 verdict for a conversational display (emoji + short text). The formatting logic
 lives in apps/bot/services.py so it can be shared with the WhatsApp webhook.
 """
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -35,6 +35,13 @@ class BotVerifierView(APIView):
         summary="Webhook bot : vérifier un texte libre",
         request=BotRequestSerializer,
         responses={200: BotResponseSerializer},
+        examples=[
+            OpenApiExample(
+                "Texte suspect",
+                value={"texte": "Vous avez gagne 1000000 FCFA, envoyez votre code OTP", "utilisateur": "wa-22890000111"},
+                request_only=True,
+            ),
+        ],
     )
     def post(self, request):
         entree = BotRequestSerializer(data=request.data)

@@ -1,6 +1,6 @@
 """Endpoints for verifying and consulting phone numbers."""
 from django.http import Http404
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -28,6 +28,23 @@ class VerifierNumeroView(APIView):
         summary="Vérifier un numéro (liste blanche + réputation)",
         request=VerifierNumeroSerializer,
         responses={200: VerdictNumeroSerializer},
+        examples=[
+            OpenApiExample(
+                "Numéro signalé (haut risque)",
+                value={"numero": "+22890112233"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Numéro officiel (liste blanche)",
+                value={"numero": "+22890000002"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Format local (sans indicatif)",
+                value={"numero": "90 11 22 33"},
+                request_only=True,
+            ),
+        ],
     )
     def post(self, request):
         entree = VerifierNumeroSerializer(data=request.data)
