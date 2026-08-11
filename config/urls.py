@@ -15,13 +15,16 @@ from rest_framework_simplejwt.views import (
 )
 
 from apps.bot.webhooks import GupshupWebhookView
-from apps.core.views import health
+from apps.core.views import AnalyseExtensionView, health
 
 urlpatterns = [
     path("admin/", admin.site.urls),
 
     # --- Health check ---
     path("api/health/", health, name="health"),
+
+    # --- Extension navigateur : analyse unifiée (dispatch vers le moteur existant) ---
+    path("api/extension/analyser/", AnalyseExtensionView.as_view(), name="extension-analyser"),
 
     # --- Webhook WhatsApp (Gupshup Sandbox) ---
     path("api/webhook/gupshup/", GupshupWebhookView.as_view(), name="webhook-gupshup"),

@@ -1,0 +1,61 @@
+{
+  "manifest_version": 3,
+  "name": "TrustLine — Protection anti-arnaque",
+  "short_name": "TrustLine",
+  "version": "1.0.0",
+  "description": "Vous aider à détecter les arnaques numériques avant qu'elles ne vous coûtent quelque chose. Connecter · Protéger · Assurer.",
+  "icons": {
+    "16": "public/icons/16.png",
+    "32": "public/icons/32.png",
+    "48": "public/icons/48.png",
+    "128": "public/icons/128.png"
+  },
+  "permissions": ["storage", "notifications", "activeTab"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "public/icons/16.png",
+      "32": "public/icons/32.png",
+      "48": "public/icons/48.png",
+      "128": "public/icons/128.png"
+    }
+  },
+  "options_page": "src/options/options.html",
+  "content_scripts": [
+    {
+      "matches": ["https://web.whatsapp.com/*"],
+      "js": ["src/content/selectors.js", "src/content/ui.js", "src/content/whatsapp.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["src/content/selectors.js", "src/content/ui.js", "src/content/gmail.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://outlook.live.com/*", "https://outlook.office.com/*", "https://outlook.office365.com/*"],
+      "js": ["src/content/selectors.js", "src/content/ui.js", "src/content/outlook.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "exclude_matches": [
+        "https://web.whatsapp.com/*",
+        "https://mail.google.com/*",
+        "https://outlook.live.com/*",
+        "https://outlook.office.com/*",
+        "https://outlook.office365.com/*"
+      ],
+      "js": ["src/content/selectors.js", "src/content/ui.js", "src/content/generic.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

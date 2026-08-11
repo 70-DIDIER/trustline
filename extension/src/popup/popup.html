@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TrustLine</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="head">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 3v5.2c0 4.4-3 8-7 9-4-1-7-4.6-7-9V6l7-3Z" stroke="#2457d6" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      <span>TrustLine</span>
+    </div>
+    <span class="status"><span class="pulse"></span> Protection active</span>
+  </header>
+
+  <section class="intro">
+    <p class="lead">Votre navigateur est protégé.</p>
+    <div class="stats" id="stats" hidden>
+      <div><strong id="stat-analyses">0</strong><span>Analyses aujourd'hui</span></div>
+      <div><strong id="stat-menaces">0</strong><span>Menaces détectées</span></div>
+    </div>
+  </section>
+
+  <section class="analyse">
+    <label for="input" class="lbl">Analyser un contenu suspect</label>
+    <textarea id="input" rows="3" placeholder="Collez ici un numéro, un lien ou un message…"></textarea>
+    <div class="row">
+      <button id="analyser" class="btn primary">Analyser</button>
+      <button id="analyser-page" class="btn ghost" title="Analyser l'adresse de la page active">Cette page</button>
+    </div>
+    <div id="result" class="result" hidden></div>
+  </section>
+
+  <section class="history">
+    <div class="history-head">
+      <span class="lbl">Historique local</span>
+      <button id="clear" class="link">Effacer</button>
+    </div>
+    <ul id="history-list" class="history-list"></ul>
+    <p id="history-empty" class="empty" hidden>Aucune analyse pour l'instant.</p>
+  </section>
+
+  <footer class="foot">
+    <a href="#" id="open-options">Paramètres &amp; confidentialité</a>
+    <span>Connecter · Protéger · Assurer</span>
+  </footer>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

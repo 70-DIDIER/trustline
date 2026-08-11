@@ -26,3 +26,9 @@ htmlcov/
 
 # ML (modèle entraîné, régénérable via ml/train_model.py)
 ml/*.joblib
+
+# Node (site/) — voir site/.gitignore pour le détail
+site/node_modules/
+site/.next/
+site/next-env.d.ts
+site/*.tsbuildinfo

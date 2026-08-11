@@ -9,7 +9,7 @@ from apps.moderation.admin_views import (
     NumeroAdminViewSet,
     SignalementAdminViewSet,
 )
-from apps.moderation.views import StatsView
+from apps.moderation.views import AlertesPubliquesView, StatsView
 
 app_name = "moderation"
 
@@ -25,6 +25,8 @@ router.register("categories", CategorieArnaqueViewSet, basename="admin-categorie
 urlpatterns = [
     # Dashboard summary (public — widget de synthèse).
     path("stats/", StatsView.as_view(), name="stats"),
+    # Alertes publiques (catégories actives, dérivées des signalements réels).
+    path("alertes/", AlertesPubliquesView.as_view(), name="alertes"),
     # Back-office admin.
     path("admin/", include(router.urls)),
 ]

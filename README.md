@@ -9,6 +9,12 @@ large : _« Puis-je faire confiance à cette interaction numérique ? »_ (numé
 lien, site, message), et pensé **multicanal** (Web, USSD, extension navigateur, bot de
 messagerie) pour ne pas exclure les utilisateurs sans smartphone.
 
+> Ce fichier documente le **backend** (ce dossier racine). Le **site public** vit dans
+> [`site/`](site/) (Next.js) et l'**extension Chrome** dans [`extension/`](extension/) —
+> voir [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md) pour la vue d'ensemble et
+> [`docs/roadmap-site.md`](docs/roadmap-site.md) / [`docs/roadmap-extension.md`](docs/roadmap-extension.md)
+> pour l'avancement de chaque composant.
+
 ---
 
 ## 🧱 Stack technique
