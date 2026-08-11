@@ -27,7 +27,11 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.bot.services import analyser_pour_whatsapp
+from apps.bot.services import (
+    analyser_pour_whatsapp,
+    est_salutation,
+    message_guide,
+)
 
 logger = logging.getLogger("trustline.gupshup")
 
@@ -180,6 +184,12 @@ class GupshupWebhookView(APIView):
                 logger.info("[gupshup] message sans texte -> réponse 'texte uniquement'")
                 _envoyer_async(numero, MESSAGE_TEXTE_UNIQUEMENT)
                 return Response({"status": "no_text"})
+
+            # Salutation / demande d'aide -> guide d'utilisation.
+            if est_salutation(texte):
+                logger.info("[gupshup] salutation détectée -> guide d'utilisation")
+                _envoyer_async(numero, message_guide())
+                return Response({"status": "guide"})
 
             # Verdict branché Trustline (branding + CTA), format WhatsApp.
             resultat = analyser_pour_whatsapp(texte, source="whatsapp")

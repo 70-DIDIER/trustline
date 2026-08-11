@@ -6,7 +6,15 @@ Formatting lives here so it is defined in one place only.
 from django.conf import settings
 
 from apps.core.constants import NiveauRisque
+from apps.core.utils import normaliser_texte
 from apps.messages.services import analyser_message
+
+# Mots de salutation / demande d'aide qui déclenchent le guide d'utilisation.
+_SALUTATIONS = {
+    "salut", "bonjour", "bonsoir", "hello", "hi", "hey", "coucou", "yo",
+    "allo", "allô", "aide", "help", "menu", "start", "commencer", "demarrer",
+    "info", "infos", "guide", "comment", "?",
+}
 
 _EMOJI = {
     NiveauRisque.FAIBLE: "✅",
@@ -41,6 +49,37 @@ def analyser_pour_bot(texte: str, source: str = "bot") -> dict:
         "niveau_risque": niveau,
         "score": verdict["score"],
     }
+
+
+def est_salutation(texte: str) -> bool:
+    """Vrai si le message est UNIQUEMENT une salutation / demande d'aide.
+
+    On exige un message court (≤ 3 mots) composé seulement de mots de
+    salutation, pour ne PAS confondre avec une arnaque qui commence par
+    « Bonjour … » suivi d'un long texte.
+    """
+    norm = normaliser_texte(texte)
+    mots = [m.strip("!.,:;") for m in norm.split() if m.strip("!.,:;")]
+    if not mots or len(mots) > 3:
+        return False
+    return all(mot in _SALUTATIONS for mot in mots)
+
+
+def message_guide() -> str:
+    """Guide d'utilisation du bot, brandé Trustline."""
+    nom = settings.TRUSTLINE_NOM
+    site = settings.TRUSTLINE_SITE
+    return (
+        f"👋 *{nom}* — votre bouclier anti-arnaque\n\n"
+        "Envoyez-moi ce qui vous semble suspect, je l'analyse aussitôt :\n"
+        "• un *SMS / message* (copiez-collez le texte)\n"
+        "• un *numéro* (ex. +228 90 11 22 33)\n"
+        "• un *lien* douteux\n\n"
+        "Je réponds avec un verdict clair : ✅ faible · ⚠️ suspect · 🚨 élevé, "
+        "et des conseils.\n\n"
+        "👉 *Essayez* : collez « Vous avez gagné 500000 FCFA, envoyez votre code OTP »\n\n"
+        f"Plus d'infos : {site}"
+    )
 
 
 def _cta_whatsapp(niveau: str) -> str:

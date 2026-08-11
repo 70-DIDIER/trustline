@@ -49,6 +49,26 @@ def test_message_texte_arnaque_declenche_envoi(mock_envoi, client):
 
 
 @mock.patch("apps.bot.webhooks._envoyer_async")
+@pytest.mark.parametrize("salutation", ["salut", "Hello", "Bonjour", "aide", "menu", "?"])
+def test_salutation_declenche_le_guide(mock_envoi, client, salutation):
+    reponse = client.post(URL, _payload_texte(salutation), format="json")
+    assert reponse.status_code == 200
+    assert reponse.json()["status"] == "guide"
+    _, texte = mock_envoi.call_args.args
+    assert "Trustline" in texte and "Envoyez-moi" in texte
+
+
+@mock.patch("apps.bot.webhooks._envoyer_async")
+def test_arnaque_commencant_par_bonjour_est_analysee_pas_guide(mock_envoi, client):
+    # Piège : un SMS d'arnaque qui commence par « Bonjour » doit être ANALYSÉ.
+    payload = _payload_texte(
+        "Bonjour je suis agent Flooz, renvoyez 15000 FCFA au 90112233 svp"
+    )
+    reponse = client.post(URL, payload, format="json")
+    assert reponse.json()["status"] == "processed"  # pas "guide"
+
+
+@mock.patch("apps.bot.webhooks._envoyer_async")
 def test_message_sans_texte_repond_texte_uniquement(mock_envoi, client):
     from apps.bot.webhooks import MESSAGE_TEXTE_UNIQUEMENT
 

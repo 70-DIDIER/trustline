@@ -206,6 +206,10 @@ curl -X POST http://127.0.0.1:8000/api/webhook/gupshup/ \
 ### Comportement (robuste pour un webhook)
 - **Répond toujours HTTP 200** (accusé de réception) — Gupshup ne réémet pas en boucle.
 - **Envoi WhatsApp asynchrone** (thread) : l'accusé part immédiatement.
+- **Salutation** (« salut », « hello », « bonjour », « aide », « menu », « ? ») → renvoie un
+  **guide d'utilisation** brandé Trustline (un vrai SMS commençant par « Bonjour… » reste analysé).
+- **Message à risque** → verdict brandé *Trustline* + CTA : vérifier sur l'app/site Trustline,
+  signaler au CERT-TG / ANCY.
 - **Message sans texte** (image seule) → réponse « je ne peux analyser que du texte ».
 - **Erreur / timeout Gupshup** → journalisée, jamais propagée.
 - **Logs clairs** à chaque étape (logger `trustline.gupshup`, visibles dans la console).
