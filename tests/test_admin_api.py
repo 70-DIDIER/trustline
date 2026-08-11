@@ -77,6 +77,49 @@ def test_moderer_signalement_recalcule_reputation(admin_client, categorie):
     assert reponse.json()["statut"] == "valide"
 
 
+def test_moderer_lot(admin_client, categorie):
+    s1, _ = creer_signalement(type_cible=TypeCible.NUMERO, cible="90111111",
+                              categorie_code=CategorieCode.DEMANDE_OTP_PIN, declarant="a")
+    s2, _ = creer_signalement(type_cible=TypeCible.NUMERO, cible="90222222",
+                              categorie_code=CategorieCode.DEMANDE_OTP_PIN, declarant="b")
+    reponse = admin_client.post(
+        "/api/admin/signalements/moderer-lot/",
+        {"ids": [s1.id, s2.id], "action": StatutSignalement.REJETE},
+        format="json",
+    )
+    assert reponse.status_code == 200
+    assert reponse.json()["modifies"] == 2
+    s1.refresh_from_db()
+    assert s1.statut == "rejete"
+
+
+def test_export_csv(admin_client, categorie):
+    creer_signalement(type_cible=TypeCible.NUMERO, cible="90333333",
+                      categorie_code=CategorieCode.DEMANDE_OTP_PIN, declarant="c")
+    reponse = admin_client.get("/api/admin/signalements/export/")
+    assert reponse.status_code == 200
+    assert reponse["Content-Type"] == "text/csv"
+    contenu = reponse.content.decode("utf-8")
+    assert "id,date_creation,type_cible" in contenu
+    assert "+22890333333" in contenu
+
+
+def test_recherche_signalements(admin_client, categorie):
+    creer_signalement(type_cible=TypeCible.NUMERO, cible="90444444",
+                      categorie_code=CategorieCode.DEMANDE_OTP_PIN, declarant="declarant-unique-xyz")
+    reponse = admin_client.get("/api/admin/signalements/?search=declarant-unique-xyz")
+    assert reponse.status_code == 200
+    assert reponse.json()["count"] == 1
+
+
+def test_signalements_d_un_numero(admin_client, categorie):
+    _, numero = creer_signalement(type_cible=TypeCible.NUMERO, cible="90555555",
+                                  categorie_code=CategorieCode.DEMANDE_OTP_PIN, declarant="d")
+    reponse = admin_client.get(f"/api/admin/numeros/{numero.id}/signalements/")
+    assert reponse.status_code == 200
+    assert reponse.json()["count"] == 1
+
+
 # --- Numéros + liste blanche ---------------------------------------------
 
 def test_ajouter_numero_liste_blanche(admin_client):

@@ -4,14 +4,18 @@ All viewsets require an authenticated staff user (``IsAdminUser``). Obtain a
 token via ``POST /api/token/`` with a superuser account, then send
 ``Authorization: Bearer <token>``.
 """
+import csv
+
 from django.db import transaction
+from django.http import HttpResponse
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, extend_schema_view
-from rest_framework import status, viewsets
+from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
-from apps.core.constants import CategorieCode, StatutSignalement, TypeCible
 from apps.core.models import CategorieArnaque, ListeBlanche, LogAnalyse
 from apps.messages.models import Message
 from apps.moderation.serializers import (
@@ -19,6 +23,7 @@ from apps.moderation.serializers import (
     ListeBlancheSerializer,
     LogAnalyseSerializer,
     MessageAdminSerializer,
+    ModererLotSerializer,
     ModererSerializer,
     NumeroAdminSerializer,
     SignalementAdminSerializer,
@@ -38,10 +43,14 @@ from apps.signalements.services import moderer_signalement
     retrieve=extend_schema(tags=["Admin — Signalements"], summary="Détail d'un signalement"),
 )
 class SignalementAdminViewSet(viewsets.ReadOnlyModelViewSet):
-    """Liste / détail des signalements + action de modération."""
+    """Liste / détail des signalements + modération (unitaire, en lot) + export."""
 
     permission_classes = [IsAdminUser]
     serializer_class = SignalementAdminSerializer
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["cible", "declarant", "commentaire"]
+    ordering_fields = ["date_creation", "statut", "type_cible"]
+    ordering = ["-date_creation"]
 
     def get_queryset(self):
         qs = Signalement.objects.select_related("categorie", "numero_cible").all()
@@ -70,6 +79,44 @@ class SignalementAdminViewSet(viewsets.ReadOnlyModelViewSet):
         signalement.refresh_from_db()
         return Response(SignalementAdminSerializer(signalement).data)
 
+    @extend_schema(
+        tags=["Admin — Signalements"],
+        summary="Modérer plusieurs signalements en une fois",
+        request=ModererLotSerializer,
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    @action(detail=False, methods=["post"], url_path="moderer-lot")
+    def moderer_lot(self, request):
+        entree = ModererLotSerializer(data=request.data)
+        entree.is_valid(raise_exception=True)
+        action_statut = entree.validated_data["action"]
+
+        signalements = Signalement.objects.filter(id__in=entree.validated_data["ids"])
+        for signalement in signalements:
+            moderer_signalement(signalement, action_statut)
+        return Response({"modifies": signalements.count(), "statut": action_statut})
+
+    @extend_schema(
+        tags=["Admin — Signalements"],
+        summary="Exporter les signalements en CSV",
+        responses={(200, "text/csv"): OpenApiTypes.BINARY},
+    )
+    @action(detail=False, methods=["get"])
+    def export(self, request):
+        reponse = HttpResponse(content_type="text/csv")
+        reponse["Content-Disposition"] = 'attachment; filename="signalements.csv"'
+        writer = csv.writer(reponse)
+        writer.writerow(
+            ["id", "date_creation", "type_cible", "cible", "categorie",
+             "declarant", "statut", "commentaire"]
+        )
+        for s in self.filter_queryset(self.get_queryset()):
+            writer.writerow([
+                s.id, s.date_creation.isoformat(), s.type_cible, s.cible,
+                s.categorie.code, s.declarant, s.statut, s.commentaire,
+            ])
+        return reponse
+
 
 @extend_schema_view(
     list=extend_schema(
@@ -79,10 +126,14 @@ class SignalementAdminViewSet(viewsets.ReadOnlyModelViewSet):
     retrieve=extend_schema(tags=["Admin — Numéros"], summary="Détail d'un numéro"),
 )
 class NumeroAdminViewSet(viewsets.ReadOnlyModelViewSet):
-    """Liste / détail des numéros + ajout à la liste blanche."""
+    """Liste / détail des numéros + ajout à la liste blanche + signalements liés."""
 
     permission_classes = [IsAdminUser]
     serializer_class = NumeroAdminSerializer
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["numero"]
+    ordering_fields = ["score_risque", "nombre_signalements", "date_dernier_signalement"]
+    ordering = ["-score_risque"]
 
     def get_queryset(self):
         qs = Numero.objects.all()
@@ -90,6 +141,21 @@ class NumeroAdminViewSet(viewsets.ReadOnlyModelViewSet):
         if niveau:
             qs = qs.filter(niveau_risque=niveau)
         return qs
+
+    @extend_schema(
+        tags=["Admin — Numéros"],
+        summary="Lister les signalements liés à ce numéro",
+        responses={200: SignalementAdminSerializer(many=True)},
+    )
+    @action(detail=True, methods=["get"])
+    def signalements(self, request, pk=None):
+        numero = self.get_object()
+        qs = numero.signalements.select_related("categorie").all()
+        page = self.paginate_queryset(qs)
+        serializer = SignalementAdminSerializer(page if page is not None else qs, many=True)
+        if page is not None:
+            return self.get_paginated_response(serializer.data)
+        return Response(serializer.data)
 
     @extend_schema(
         tags=["Admin — Numéros"],
@@ -149,6 +215,10 @@ class ListeBlancheViewSet(viewsets.ModelViewSet):
 class MessageAdminViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAdminUser]
     serializer_class = MessageAdminSerializer
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["contenu"]
+    ordering_fields = ["date_analyse", "score_risque"]
+    ordering = ["-date_analyse"]
 
     def get_queryset(self):
         qs = Message.objects.all()
@@ -165,6 +235,10 @@ class MessageAdminViewSet(viewsets.ReadOnlyModelViewSet):
 class LogAnalyseAdminViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAdminUser]
     serializer_class = LogAnalyseSerializer
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ["cible"]
+    ordering_fields = ["date_analyse", "score_risque"]
+    ordering = ["-date_analyse"]
 
     def get_queryset(self):
         qs = LogAnalyse.objects.all()

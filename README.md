@@ -234,17 +234,21 @@ token JWT d'un compte staff** (`Authorization: Bearer <token>`), obtenu via `POS
 
 | Méthode | Endpoint | Rôle |
 |---|---|---|
-| `GET` | `/api/admin/signalements/` | Lister/filtrer (`?statut=`, `?categorie=`, `?type_cible=`) |
+| `GET` | `/api/admin/signalements/` | Lister/filtrer (`?statut=`, `?categorie=`, `?type_cible=`, `?search=`, `?ordering=`) |
 | `POST` | `/api/admin/signalements/{id}/moderer/` | Modérer : `{"action":"valide\|conteste\|rejete"}` → recalcule la réputation |
-| `GET` | `/api/admin/numeros/` | Lister les numéros (`?niveau_risque=`) |
+| `POST` | `/api/admin/signalements/moderer-lot/` | Modérer plusieurs : `{"ids":[...],"action":"..."}` |
+| `GET` | `/api/admin/signalements/export/` | Export CSV des signalements (filtres appliqués) |
+| `GET` | `/api/admin/numeros/` | Lister les numéros (`?niveau_risque=`, `?search=`, `?ordering=`) |
 | `POST` | `/api/admin/numeros/{id}/liste-blanche/` | Ajouter à la liste blanche |
+| `GET` | `/api/admin/numeros/{id}/signalements/` | Signalements liés à ce numéro |
 | `GET`/`POST`/`DELETE` | `/api/admin/liste-blanche/` | CRUD des numéros officiels |
-| `GET` | `/api/admin/messages/` | Messages analysés (`?verdict=`) |
-| `GET` | `/api/admin/logs/` | Logs d'analyse (`?type_cible=`, `?source=`) |
+| `GET` | `/api/admin/messages/` | Messages analysés (`?verdict=`, `?search=`) |
+| `GET` | `/api/admin/logs/` | Logs d'analyse (`?type_cible=`, `?source=`, `?search=`) |
 | `GET` | `/api/admin/categories/` | Référentiel des catégories |
 | `GET` | `/api/stats/` | Synthèse dashboard (public) |
 
-Les listes sont **paginées** (`?page=`, 20/page). Exemple :
+Les listes sont **paginées** (`?page=`, 20/page), **cherchables** (`?search=`) et
+**triables** (`?ordering=-date_creation`). Exemple :
 ```bash
 TOKEN=$(curl -s -X POST http://127.0.0.1:8000/api/token/ \
   -H "Content-Type: application/json" \

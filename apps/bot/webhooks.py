@@ -27,12 +27,12 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.bot.services import analyser_pour_bot
+from apps.bot.services import analyser_pour_whatsapp
 
 logger = logging.getLogger("trustline.gupshup")
 
 MESSAGE_TEXTE_UNIQUEMENT = (
-    "Je ne peux analyser que du texte pour le moment. "
+    "🛡️ *Trustline* : je n'analyse que du texte pour le moment. "
     "Merci de coller le texte du message suspect. 🙏"
 )
 
@@ -181,8 +181,8 @@ class GupshupWebhookView(APIView):
                 _envoyer_async(numero, MESSAGE_TEXTE_UNIQUEMENT)
                 return Response({"status": "no_text"})
 
-            # Reuse the shared bot logic (same as /api/bot/verifier/).
-            resultat = analyser_pour_bot(texte, source="whatsapp")
+            # Verdict branché Trustline (branding + CTA), format WhatsApp.
+            resultat = analyser_pour_whatsapp(texte, source="whatsapp")
             logger.info(
                 "[gupshup] verdict: niveau=%s score=%s",
                 resultat["niveau_risque"], resultat["score"],

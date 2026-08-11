@@ -29,16 +29,27 @@ class SignalementAdminSerializer(serializers.ModelSerializer):
         ]
 
 
-class ModererSerializer(serializers.Serializer):
-    """Input for the moderation action."""
+_ACTIONS_MODERATION = [
+    (StatutSignalement.VALIDE, "Valider"),
+    (StatutSignalement.CONTESTE, "Contester"),
+    (StatutSignalement.REJETE, "Rejeter"),
+]
 
-    action = serializers.ChoiceField(
-        choices=[
-            (StatutSignalement.VALIDE, "Valider"),
-            (StatutSignalement.CONTESTE, "Contester"),
-            (StatutSignalement.REJETE, "Rejeter"),
-        ]
+
+class ModererSerializer(serializers.Serializer):
+    """Input for the single moderation action."""
+
+    action = serializers.ChoiceField(choices=_ACTIONS_MODERATION)
+
+
+class ModererLotSerializer(serializers.Serializer):
+    """Input for bulk moderation."""
+
+    ids = serializers.ListField(
+        child=serializers.IntegerField(), allow_empty=False,
+        help_text="IDs des signalements à modérer.",
     )
+    action = serializers.ChoiceField(choices=_ACTIONS_MODERATION)
 
 
 class NumeroAdminSerializer(serializers.ModelSerializer):

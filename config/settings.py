@@ -205,6 +205,13 @@ SPECTACULAR_SETTINGS = {
         "defaultModelsExpandDepth": 0,
         "persistAuthorization": True,
     },
+    # Noms canoniques pour les enums partagés (évite les collisions de nommage).
+    "ENUM_NAME_OVERRIDES": {
+        "NiveauRisque": "apps.core.constants.NiveauRisque.choices",
+        "CategorieCode": "apps.core.constants.CategorieCode.choices",
+        "StatutSignalement": "apps.core.constants.StatutSignalement.choices",
+        "TypeCible": "apps.core.constants.TypeCible.choices",
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -266,6 +273,10 @@ GUPSHUP_SOURCE = env("GUPSHUP_SOURCE", default="917834811114")  # sandbox number
 GUPSHUP_APP_NAME = env("GUPSHUP_APP_NAME", default="TrustLine")
 GUPSHUP_API_URL = env("GUPSHUP_API_URL", default="https://api.gupshup.io/wa/api/v1/msg")
 GUPSHUP_TIMEOUT = env.int("GUPSHUP_TIMEOUT", default=10)  # seconds for outbound call
+
+# Branding utilisé dans les messages sortants (bot / WhatsApp).
+TRUSTLINE_NOM = env("TRUSTLINE_NOM", default="Trustline")
+TRUSTLINE_SITE = env("TRUSTLINE_SITE", default="trustline.tg")
 
 # ---------------------------------------------------------------------------
 # Logging — console output so webhook/debug logs are visible during the demo
