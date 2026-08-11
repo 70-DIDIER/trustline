@@ -41,6 +41,41 @@ class CreerSessionVigieSerializer(serializers.Serializer):
     )
 
 
+class AnalyserTranscriptionSerializer(serializers.Serializer):
+    """Input for POST /api/vigie/analyser/."""
+
+    texte = serializers.CharField(
+        max_length=8000,
+        trim_whitespace=True,
+        help_text=(
+            "Transcription accumulée de l'appel. Elle est analysée en mémoire "
+            "puis abandonnée : rien n'est écrit en base."
+        ),
+    )
+
+
+class IndiceVigieSerializer(serializers.Serializer):
+    """One piece of evidence behind a Mode Vigie verdict."""
+
+    code = serializers.CharField()
+    libelle = serializers.CharField()
+    poids = serializers.IntegerField()
+    detail = serializers.CharField(allow_blank=True)
+    categorie = serializers.CharField(allow_blank=True)
+
+
+class AnalyseTranscriptionSerializer(serializers.Serializer):
+    """Response of POST /api/vigie/analyser/."""
+
+    score = serializers.IntegerField()
+    niveau_risque = serializers.CharField()
+    signaux = serializers.ListField(child=serializers.CharField())
+    indices = IndiceVigieSerializer(many=True)
+    analyse_ml = serializers.BooleanField(
+        help_text="Faux si le serveur tourne en mode règles (ML_MODEL_PATH vide)."
+    )
+
+
 class SessionVigieSerializer(serializers.ModelSerializer):
     """Stored summary of a listening session."""
 

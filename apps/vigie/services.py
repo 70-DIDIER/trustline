@@ -10,8 +10,10 @@ Two responsibilities:
 """
 import hashlib
 import json
+import re
 
-from apps.core.utils import clamp_score, niveau_from_score
+from apps.core.utils import clamp_score, niveau_from_score, normaliser_texte
+from apps.scoring.engine import moteur_par_defaut
 from apps.scoring.rules import REGLES
 
 # Extra spoken-only signals: these never appear in a written SMS but are the
@@ -102,3 +104,72 @@ def evaluer_session(codes_signaux) -> dict:
     score = clamp_score(sum(poids[c] for c in codes))
     niveau = niveau_from_score(score)
     return {"codes": codes, "score": score, "niveau_risque": niveau}
+
+
+# --- Analyse assistée par le modèle -----------------------------------------
+#
+# Les motifs oraux ne font pas partie de REGLES : le moteur de scoring ne les
+# connaît donc pas. On les applique ici pour que le verdict serveur couvre au
+# moins tout ce que le téléphone sait détecter seul.
+_MOTIFS_ORAUX_COMPILES: list[tuple[dict, list[re.Pattern]]] = []
+
+
+def _motifs_oraux() -> list[tuple[dict, list[re.Pattern]]]:
+    global _MOTIFS_ORAUX_COMPILES
+    if not _MOTIFS_ORAUX_COMPILES:
+        _MOTIFS_ORAUX_COMPILES = [
+            (signal, [re.compile(m, re.IGNORECASE) for m in signal["motifs"]])
+            for signal in SIGNAUX_ORAUX
+        ]
+    return _MOTIFS_ORAUX_COMPILES
+
+
+def analyser_transcription(texte: str) -> dict:
+    """Analyse a Mode Vigie transcript with the full engine (rules + model).
+
+    Deliberately calls the engine directly instead of ``analyser_message`` :
+    that helper writes the analysed text to ``Message`` **and** to
+    ``LogAnalyse.cible``. A call transcript must never be stored, so it is
+    scored in memory and dropped — only the score and the signal codes are
+    ever persisted, and only by ``POST /api/vigie/sessions/``.
+    """
+    texte = (texte or "").strip()
+    if not texte:
+        return {
+            "score": 0,
+            "niveau_risque": niveau_from_score(0),
+            "signaux": [],
+            "indices": [],
+            "analyse_ml": moteur_par_defaut.ml_model is not None,
+        }
+
+    resultat = moteur_par_defaut.analyser(texte)
+    indices = [i.as_dict() for i in resultat.indices]
+    codes = {i["code"] for i in indices}
+    score = resultat.score
+
+    texte_norm = normaliser_texte(texte)
+    for signal, motifs in _motifs_oraux():
+        if signal["code"] in codes:
+            continue
+        if any(motif.search(texte_norm) for motif in motifs):
+            codes.add(signal["code"])
+            score += signal["poids"]
+            indices.append(
+                {
+                    "code": signal["code"],
+                    "libelle": signal["libelle"],
+                    "poids": signal["poids"],
+                    "detail": signal["detail"],
+                    "categorie": signal["categorie"],
+                }
+            )
+
+    score = clamp_score(score)
+    return {
+        "score": score,
+        "niveau_risque": niveau_from_score(score),
+        "signaux": [i["code"] for i in indices],
+        "indices": indices,
+        "analyse_ml": moteur_par_defaut.ml_model is not None,
+    }

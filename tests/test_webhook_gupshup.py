@@ -113,6 +113,40 @@ def test_message_whatsapp_risque_contient_branding_et_cta():
     assert "ancy" in r["reponse"].lower()
 
 
+def test_message_whatsapp_masque_les_indices_techniques(monkeypatch):
+    """Le renfort du modèle ML ne doit jamais apparaître dans la réponse.
+
+    Régression : le filtre comparait des libellés d'affichage (« Score renforcé
+    par le modèle… ») alors que le moteur en émet un autre (« Score confirmé
+    par le modèle… »). L'indice technique fuitait donc vers l'utilisateur dès
+    que ML_MODEL_PATH était renseigné. Le filtre porte désormais sur le code.
+
+    Le verdict est injecté plutôt que calculé : sans modèle chargé, le moteur
+    n'émettrait aucun indice `modele_ml` et le test passerait à vide.
+    """
+    from apps.bot import services
+
+    verdict = {
+        "score": 85,
+        "niveau_risque": "eleve",
+        "recommandation": "Ne répondez pas.",
+        "indices": [
+            {"code": "demande_otp_pin", "libelle": "Demande d'un code OTP."},
+            {
+                "code": "modele_ml",
+                "libelle": "Score confirmé par le modèle d'apprentissage.",
+            },
+        ],
+    }
+    monkeypatch.setattr(services, "analyser_message", lambda *a, **k: verdict)
+
+    reponse = services.analyser_pour_whatsapp("peu importe")["reponse"]
+
+    assert "Demande d'un code OTP." in reponse  # l'indice utile passe
+    assert "apprentissage" not in reponse.lower()  # le technique, non
+    assert "modele_ml" not in reponse
+
+
 def test_message_whatsapp_benin_branding_sans_alerte_autorites():
     from apps.bot.services import analyser_pour_whatsapp
 

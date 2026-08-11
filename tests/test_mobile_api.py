@@ -238,6 +238,58 @@ def test_catalogue_vigie_livre_les_motifs_a_appliquer_localement(client_anonyme)
     assert all(s["motifs"] for s in data["signaux"])
 
 
+def test_analyse_transcription_vigie_repere_les_signaux_oraux(client):
+    reponse = client.post(
+        "/api/vigie/analyser/",
+        {
+            "texte": "Bonjour je suis un agent de votre operateur, votre compte "
+            "sera bloque. Envoyez moi le code de verification immediatement "
+            "et ne dites rien a personne.",
+        },
+        format="json",
+    )
+    assert reponse.status_code == 200
+    data = reponse.json()
+
+    codes = set(data["signaux"])
+    # Règles partagées avec l'analyse de SMS…
+    assert "demande_otp_pin" in codes
+    # …et signaux propres à l'oral, absents de REGLES.
+    assert {"identite_pretendue", "menace_suspension", "insistance_secret"} <= codes
+    assert data["niveau_risque"] == NiveauRisque.ELEVE
+    assert all(i["libelle"] for i in data["indices"])
+
+
+def test_analyse_transcription_vigie_ne_persiste_jamais_le_texte(client):
+    """La transcription transite pour être analysée, elle ne doit rien laisser.
+
+    C'est la contrepartie du consentement demandé dans l'application : le texte
+    est scoré en mémoire puis abandonné. `/api/messages/analyser/` le stocke,
+    lui, dans Message et LogAnalyse — d'où l'endpoint distinct.
+    """
+    from apps.core.models import LogAnalyse
+    from apps.messages.models import Message
+
+    secret = "envoyez le code 4321 a mon numero personnel"
+    avant_logs = LogAnalyse.objects.count()
+    avant_messages = Message.objects.count()
+
+    assert client.post(
+        "/api/vigie/analyser/", {"texte": secret}, format="json"
+    ).status_code == 200
+
+    assert LogAnalyse.objects.count() == avant_logs
+    assert Message.objects.count() == avant_messages
+    assert not LogAnalyse.objects.filter(cible__icontains="4321").exists()
+
+
+def test_analyse_transcription_vigie_exige_un_appareil(client_anonyme):
+    reponse = client_anonyme.post(
+        "/api/vigie/analyser/", {"texte": "bonjour"}, format="json"
+    )
+    assert reponse.status_code in {400, 401, 403}
+
+
 def test_session_vigie_est_scoree_par_le_serveur(client):
     reponse = client.post(
         "/api/vigie/sessions/",

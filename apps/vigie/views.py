@@ -11,11 +11,18 @@ from apps.historique.models import TypeVerification
 from apps.historique.services import enregistrer_verification
 from apps.vigie.models import SessionVigie
 from apps.vigie.serializers import (
+    AnalyseTranscriptionSerializer,
+    AnalyserTranscriptionSerializer,
     CatalogueVigieSerializer,
     CreerSessionVigieSerializer,
     SessionVigieSerializer,
 )
-from apps.vigie.services import catalogue_signaux, evaluer_session, version_catalogue
+from apps.vigie.services import (
+    analyser_transcription,
+    catalogue_signaux,
+    evaluer_session,
+    version_catalogue,
+)
 
 
 class CatalogueVigieView(APIView):
@@ -38,6 +45,31 @@ class CatalogueVigieView(APIView):
         return Response(
             {"version": version_catalogue(), "signaux": catalogue_signaux()}
         )
+
+
+class AnalyserTranscriptionView(APIView):
+    """POST /api/vigie/analyser/ — score a transcript with the trained model."""
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        tags=["Mode Vigie"],
+        summary="Analyser la transcription d'un appel avec le modèle",
+        description=(
+            "Complète la détection locale par motifs, qui ne reconnaît que des "
+            "formulations exactes. La transcription est analysée **en mémoire "
+            "puis abandonnée** : contrairement à `/api/messages/analyser/`, "
+            "elle n'est écrite ni dans `Message` ni dans `LogAnalyse`. "
+            "L'utilisateur doit y avoir consenti explicitement dans l'app."
+        ),
+        request=AnalyserTranscriptionSerializer,
+        responses={200: AnalyseTranscriptionSerializer},
+    )
+    def post(self, request):
+        exiger_appareil(request)
+        entree = AnalyserTranscriptionSerializer(data=request.data)
+        entree.is_valid(raise_exception=True)
+        return Response(analyser_transcription(entree.validated_data["texte"]))
 
 
 class SessionVigieView(APIView):

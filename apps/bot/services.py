@@ -100,7 +100,12 @@ def _cta_whatsapp(niveau: str) -> str:
 
 
 # Indices internes/techniques à ne pas montrer à l'utilisateur final.
-_INDICES_TECHNIQUES = {"Score renforcé par le modèle d'apprentissage."}
+#
+# On filtre sur le CODE et non sur le libellé : le libellé est du texte
+# d'affichage, susceptible d'être reformulé. Il l'a d'ailleurs été — le filtre
+# visait « Score renforcé… » quand le moteur émet « Score confirmé… » — et
+# l'indice technique repassait donc en clair dès l'activation du modèle.
+_INDICES_TECHNIQUES = {"modele_ml"}
 
 
 def analyser_pour_whatsapp(texte: str, source: str = "whatsapp") -> dict:
@@ -115,7 +120,7 @@ def analyser_pour_whatsapp(texte: str, source: str = "whatsapp") -> dict:
     indices = [
         indice["libelle"]
         for indice in verdict["indices"]
-        if indice["libelle"] not in _INDICES_TECHNIQUES
+        if indice["code"] not in _INDICES_TECHNIQUES
     ]
 
     lignes = [f"{_EMOJI[niveau]} *{nom}* — {_ENTETE[niveau]} ({verdict['score']}/100)"]
