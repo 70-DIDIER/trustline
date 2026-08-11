@@ -92,7 +92,8 @@ puis relancez `migrate`. Aucun changement de code nécessaire.
 | `POST` | `/api/messages/analyser/` | Analyser un SMS / message |
 | `POST` | `/api/liens/analyser/` | Analyser un lien / site (extension Chrome) |
 | `POST` | `/api/signalements/` | Signaler + mettre à jour la réputation |
-| `POST` | `/api/ussd/simulate/` | Simuler un parcours USSD |
+| `POST` | `/api/ussd/simulate/` | Simuler un parcours USSD (JSON, pour le front) |
+| `POST` | `/api/ussd/africastalking/` | Webhook USSD réel (passerelle Africa's Talking) |
 | `POST` | `/api/bot/verifier/` | Webhook bot (verdict conversationnel) |
 | `POST` | `/api/webhook/gupshup/` | Webhook WhatsApp entrant (Gupshup) — voir section dédiée |
 | `GET`  | `/api/stats/` | Statistiques agrégées (dashboard) |
@@ -261,6 +262,40 @@ TOKEN=$(curl -s -X POST http://127.0.0.1:8000/api/token/ \
 curl -H "Authorization: Bearer $TOKEN" \
   "http://127.0.0.1:8000/api/admin/signalements/?statut=en_attente"
 ```
+
+---
+
+## 📟 USSD réel (Africa's Talking sandbox)
+
+L'endpoint `POST /api/ussd/africastalking/` est un **webhook pour une vraie passerelle
+USSD**. Il reçoit le format Africa's Talking (form-urlencoded : `sessionId`, `serviceCode`,
+`phoneNumber`, `text`) et répond en **texte brut** préfixé `CON ` (menu, session ouverte) ou
+`END ` (fin). Il réutilise la même logique que le simulateur JSON (`traiter_ussd`).
+
+### Tester avec le simulateur Africa's Talking
+1. **Exposer le serveur local** :
+   ```bash
+   ngrok http 8000     # -> https://xxxx.ngrok-free.app
+   ```
+2. Dans le **sandbox AT** (Créer un canal USSD), renseigne la **Callback URL** :
+   ```
+   https://xxxx.ngrok-free.app/api/ussd/africastalking/
+   ```
+   AT t'attribue un code de test (ex. `*384*NNNN#`).
+3. **Lance le simulateur USSD** d'AT : saisis un numéro, compose le code → le menu Trustline
+   s'affiche, servi par ton serveur (regarde les logs `runserver`).
+
+### Tester en local (format AT)
+```bash
+curl -X POST http://127.0.0.1:8000/api/ussd/africastalking/ \
+  -d "sessionId=abc&phoneNumber=+22890000111&text=1*90112233"
+# -> END Numéro +22890112233  Risque: ELEVE (77/100) ...
+```
+
+> ℹ️ Le sandbox/simulateur AT est un **vrai flux USSD de bout en bout via leur passerelle**
+> — mais ce n'est pas encore une SIM composant un code court togolais. Passer sur un code
+> réel en production nécessite le processus « go live » d'Africa's Talking + la couverture
+> opérateur.
 
 ---
 
