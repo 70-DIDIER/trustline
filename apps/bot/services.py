@@ -66,19 +66,22 @@ def est_salutation(texte: str) -> bool:
 
 
 def message_guide() -> str:
-    """Guide d'utilisation du bot, brandé Trustline."""
+    """Message de bienvenue / guide d'utilisation du bot, brandé Trustline."""
     nom = settings.TRUSTLINE_NOM
-    site = settings.TRUSTLINE_SITE
     return (
-        f"👋 *{nom}* — votre bouclier anti-arnaque\n\n"
-        "Envoyez-moi ce qui vous semble suspect, je l'analyse aussitôt :\n"
-        "• un *SMS / message* (copiez-collez le texte)\n"
-        "• un *numéro* (ex. +228 90 11 22 33)\n"
-        "• un *lien* douteux\n\n"
-        "Je réponds avec un verdict clair : ✅ faible · ⚠️ suspect · 🚨 élevé, "
-        "et des conseils.\n\n"
-        "👉 *Essayez* : collez « Vous avez gagné 500000 FCFA, envoyez votre code OTP »\n\n"
-        f"Plus d'infos : {site}"
+        f"👋 Bienvenue sur *{nom}* — votre bouclier contre les arnaques numériques\n\n"
+        "Envoyez-moi un SMS, un message ou un lien suspect, et je vous dirai en "
+        "quelques secondes s'il s'agit d'une arnaque, avec le niveau de risque et "
+        "les raisons du verdict.\n\n"
+        f"Pour aller plus loin, {nom} est aussi disponible sur :\n"
+        "📱 *Application mobile* — vérification de numéros, historique, alertes "
+        "d'appels suspects et Mode Vigie\n"
+        "🧩 *Extension Chrome* — protection automatique pendant votre navigation\n"
+        "🌐 *Site web* — recherche et signalement en ligne\n"
+        "📟 *Service USSD* — accessible sans smartphone ni connexion Internet\n\n"
+        "Un numéro ou un site déjà signalé par la communauté ? On vous prévient "
+        "immédiatement, sur tous les canaux.\n\n"
+        "Tapez votre message ou collez un lien pour commencer. 👇"
     )
 
 
