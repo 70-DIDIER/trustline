@@ -40,6 +40,8 @@ source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 pip install gunicorn            # serveur d'application (non inclus dans requirements)
+# Modèle ML actif en prod ? Installe aussi les deps ML (sinon fallback règles) :
+pip install -r requirements-ml.txt
 ```
 
 ## 4. Configurer le `.env` (production)
@@ -57,6 +59,24 @@ ALLOWED_HOSTS=VOTRE_DOMAINE,www.VOTRE_DOMAINE
 DATABASE_URL=postgres://trustline_user:MOT_DE_PASSE_DB@localhost:5432/trustline
 CACHE_URL=redis://127.0.0.1:6379/1
 CORS_ALLOW_ALL_ORIGINS=True
+
+# HTTPS : origine(s) de confiance pour l'admin (obligatoire).
+CSRF_TRUSTED_ORIGINS=https://VOTRE_DOMAINE
+# ⚠️ À laisser False tant que certbot n'a pas posé le certificat (cf. section HTTPS).
+SECURE_SSL_REDIRECT=False
+
+# Modèle ML (si présent + deps ML installées).
+ML_MODEL_PATH=ml/trustline_model.joblib
+ML_POIDS=0.5
+
+# WhatsApp Gupshup (pour le webhook /api/webhook/gupshup/).
+GUPSHUP_API_KEY=<ta_cle_gupshup>
+GUPSHUP_SOURCE=<numero_sandbox>
+GUPSHUP_APP_NAME=TrustLine
+
+# Branding des messages sortants.
+TRUSTLINE_NOM=Trustline
+TRUSTLINE_SITE=trustline.tg
 ```
 
 ## 5. Initialiser l'application
@@ -68,6 +88,21 @@ python manage.py seed_demo_data                # (optionnel) données de démo
 # Test rapide avant de « systemd-iser » :
 gunicorn config.wsgi:application --bind 127.0.0.1:8000   # Ctrl+C pour arrêter
 ```
+
+### 5 bis. Modèle ML sur le VPS
+Le fichier `ml/trustline_model.joblib` est **ignoré par git** (non versionné) → il n'arrive
+pas via `git clone`. Deux options :
+```bash
+# Option A — copier le modèle depuis ta machine (recommandé)
+scp ml/trustline_model.joblib user@VOTRE_VPS:/opt/trustline/ml/
+
+# Option B — ré-entraîner sur le VPS (nécessite le dataset + deps ML)
+python ml/train_model.py --dataset ml/dataset_augmente_ewe.csv
+```
+> Pour que le modèle se **charge**, scikit-learn doit être installé sur le VPS
+> (`requirements-ml.txt`, étape 3). Sans lui, `charger_modele()` retombe
+> proprement sur le mode règles (pas de crash). Vérifie au démarrage :
+> `sudo journalctl -u trustline | grep "\[ml\]"` → doit afficher « modèle chargé ».
 
 ## 6. Service systemd (Gunicorn)
 ```bash

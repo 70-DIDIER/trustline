@@ -38,11 +38,34 @@ def test_message_texte_arnaque_declenche_envoi(mock_envoi, client):
 
     assert reponse.status_code == 200
     assert reponse.json()["status"] == "processed"
-    # Outbound send called with the sender's number and a non-empty verdict.
+    # Outbound send called with the sender's number and a branded verdict.
     mock_envoi.assert_called_once()
     destination, texte_reponse = mock_envoi.call_args.args
     assert destination == "22890429399"
-    assert "100" in texte_reponse or "eleve" in texte_reponse.lower() or "🚨" in texte_reponse
+    # Branding Trustline + CTA de vérification/signalement (message à risque).
+    assert "Trustline" in texte_reponse
+    assert "cert.tg" in texte_reponse.lower() or "ancy" in texte_reponse.lower()
+    assert "🚨" in texte_reponse or "⚠️" in texte_reponse
+
+
+@mock.patch("apps.bot.webhooks._envoyer_async")
+@pytest.mark.parametrize("salutation", ["salut", "Hello", "Bonjour", "aide", "menu", "?"])
+def test_salutation_declenche_le_guide(mock_envoi, client, salutation):
+    reponse = client.post(URL, _payload_texte(salutation), format="json")
+    assert reponse.status_code == 200
+    assert reponse.json()["status"] == "guide"
+    _, texte = mock_envoi.call_args.args
+    assert "Trustline" in texte and "Envoyez-moi" in texte
+
+
+@mock.patch("apps.bot.webhooks._envoyer_async")
+def test_arnaque_commencant_par_bonjour_est_analysee_pas_guide(mock_envoi, client):
+    # Piège : un SMS d'arnaque qui commence par « Bonjour » doit être ANALYSÉ.
+    payload = _payload_texte(
+        "Bonjour je suis agent Flooz, renvoyez 15000 FCFA au 90112233 svp"
+    )
+    reponse = client.post(URL, payload, format="json")
+    assert reponse.json()["status"] == "processed"  # pas "guide"
 
 
 @mock.patch("apps.bot.webhooks._envoyer_async")
@@ -78,6 +101,26 @@ def test_payload_vide_renvoie_200_sans_planter(mock_envoi, client):
     reponse = client.post(URL, {}, format="json")
     assert reponse.status_code == 200
     mock_envoi.assert_not_called()
+
+
+def test_message_whatsapp_risque_contient_branding_et_cta():
+    from apps.bot.services import analyser_pour_whatsapp
+
+    r = analyser_pour_whatsapp("Envoyez votre code OTP immediatement pour debloquer")
+    assert r["niveau_risque"] in {"suspect", "eleve"}
+    assert "*Trustline*" in r["reponse"]
+    assert "cert.tg" in r["reponse"].lower()
+    assert "ancy" in r["reponse"].lower()
+
+
+def test_message_whatsapp_benin_branding_sans_alerte_autorites():
+    from apps.bot.services import analyser_pour_whatsapp
+
+    r = analyser_pour_whatsapp("Salut, on se voit demain a 15h ?")
+    assert r["niveau_risque"] == "faible"
+    assert "*Trustline*" in r["reponse"]
+    # Pas d'incitation à signaler aux autorités pour un message bénin.
+    assert "cert.tg" not in r["reponse"].lower()
 
 
 def test_envoyer_message_gupshup_sans_cle_ne_plante_pas(settings):

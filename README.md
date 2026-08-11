@@ -130,7 +130,8 @@ continuer à servir l'extension navigateur, l'USSD et les bots.
 | `POST` | `/api/messages/analyser/` 🔓 | Analyser un SMS / message |
 | `POST` | `/api/liens/analyser/` 🔓 | Analyser un lien / site (mobile + extension) |
 | `POST` | `/api/signalements/` 🔓 | Signaler + mettre à jour la réputation |
-| `POST` | `/api/ussd/simulate/` | Simuler un parcours USSD |
+| `POST` | `/api/ussd/simulate/` | Simuler un parcours USSD (JSON, pour le front) |
+| `POST` | `/api/ussd/africastalking/` | Webhook USSD réel (passerelle Africa's Talking) |
 | `POST` | `/api/bot/verifier/` | Webhook bot (verdict conversationnel) |
 | `POST` | `/api/webhook/gupshup/` | Webhook WhatsApp entrant (Gupshup) — voir section dédiée |
 | `GET`  | `/api/stats/` | Statistiques agrégées (dashboard) |
@@ -270,6 +271,10 @@ curl -X POST http://127.0.0.1:8000/api/webhook/gupshup/ \
 ### Comportement (robuste pour un webhook)
 - **Répond toujours HTTP 200** (accusé de réception) — Gupshup ne réémet pas en boucle.
 - **Envoi WhatsApp asynchrone** (thread) : l'accusé part immédiatement.
+- **Salutation** (« salut », « hello », « bonjour », « aide », « menu », « ? ») → renvoie un
+  **guide d'utilisation** brandé Trustline (un vrai SMS commençant par « Bonjour… » reste analysé).
+- **Message à risque** → verdict brandé *Trustline* + CTA : vérifier sur l'app/site Trustline,
+  signaler au CERT-TG / ANCY.
 - **Message sans texte** (image seule) → réponse « je ne peux analyser que du texte ».
 - **Erreur / timeout Gupshup** → journalisée, jamais propagée.
 - **Logs clairs** à chaque étape (logger `trustline.gupshup`, visibles dans la console).
@@ -298,17 +303,21 @@ token JWT d'un compte staff** (`Authorization: Bearer <token>`), obtenu via `POS
 
 | Méthode | Endpoint | Rôle |
 |---|---|---|
-| `GET` | `/api/admin/signalements/` | Lister/filtrer (`?statut=`, `?categorie=`, `?type_cible=`) |
+| `GET` | `/api/admin/signalements/` | Lister/filtrer (`?statut=`, `?categorie=`, `?type_cible=`, `?search=`, `?ordering=`) |
 | `POST` | `/api/admin/signalements/{id}/moderer/` | Modérer : `{"action":"valide\|conteste\|rejete"}` → recalcule la réputation |
-| `GET` | `/api/admin/numeros/` | Lister les numéros (`?niveau_risque=`) |
+| `POST` | `/api/admin/signalements/moderer-lot/` | Modérer plusieurs : `{"ids":[...],"action":"..."}` |
+| `GET` | `/api/admin/signalements/export/` | Export CSV des signalements (filtres appliqués) |
+| `GET` | `/api/admin/numeros/` | Lister les numéros (`?niveau_risque=`, `?search=`, `?ordering=`) |
 | `POST` | `/api/admin/numeros/{id}/liste-blanche/` | Ajouter à la liste blanche |
+| `GET` | `/api/admin/numeros/{id}/signalements/` | Signalements liés à ce numéro |
 | `GET`/`POST`/`DELETE` | `/api/admin/liste-blanche/` | CRUD des numéros officiels |
-| `GET` | `/api/admin/messages/` | Messages analysés (`?verdict=`) |
-| `GET` | `/api/admin/logs/` | Logs d'analyse (`?type_cible=`, `?source=`) |
+| `GET` | `/api/admin/messages/` | Messages analysés (`?verdict=`, `?search=`) |
+| `GET` | `/api/admin/logs/` | Logs d'analyse (`?type_cible=`, `?source=`, `?search=`) |
 | `GET` | `/api/admin/categories/` | Référentiel des catégories |
 | `GET` | `/api/stats/` | Synthèse dashboard (public) |
 
-Les listes sont **paginées** (`?page=`, 20/page). Exemple :
+Les listes sont **paginées** (`?page=`, 20/page), **cherchables** (`?search=`) et
+**triables** (`?ordering=-date_creation`). Exemple :
 ```bash
 TOKEN=$(curl -s -X POST http://127.0.0.1:8000/api/token/ \
   -H "Content-Type: application/json" \
@@ -317,6 +326,40 @@ TOKEN=$(curl -s -X POST http://127.0.0.1:8000/api/token/ \
 curl -H "Authorization: Bearer $TOKEN" \
   "http://127.0.0.1:8000/api/admin/signalements/?statut=en_attente"
 ```
+
+---
+
+## 📟 USSD réel (Africa's Talking sandbox)
+
+L'endpoint `POST /api/ussd/africastalking/` est un **webhook pour une vraie passerelle
+USSD**. Il reçoit le format Africa's Talking (form-urlencoded : `sessionId`, `serviceCode`,
+`phoneNumber`, `text`) et répond en **texte brut** préfixé `CON ` (menu, session ouverte) ou
+`END ` (fin). Il réutilise la même logique que le simulateur JSON (`traiter_ussd`).
+
+### Tester avec le simulateur Africa's Talking
+1. **Exposer le serveur local** :
+   ```bash
+   ngrok http 8000     # -> https://xxxx.ngrok-free.app
+   ```
+2. Dans le **sandbox AT** (Créer un canal USSD), renseigne la **Callback URL** :
+   ```
+   https://xxxx.ngrok-free.app/api/ussd/africastalking/
+   ```
+   AT t'attribue un code de test (ex. `*384*NNNN#`).
+3. **Lance le simulateur USSD** d'AT : saisis un numéro, compose le code → le menu Trustline
+   s'affiche, servi par ton serveur (regarde les logs `runserver`).
+
+### Tester en local (format AT)
+```bash
+curl -X POST http://127.0.0.1:8000/api/ussd/africastalking/ \
+  -d "sessionId=abc&phoneNumber=+22890000111&text=1*90112233"
+# -> END Numéro +22890112233  Risque: ELEVE (77/100) ...
+```
+
+> ℹ️ Le sandbox/simulateur AT est un **vrai flux USSD de bout en bout via leur passerelle**
+> — mais ce n'est pas encore une SIM composant un code court togolais. Passer sur un code
+> réel en production nécessite le processus « go live » d'Africa's Talking + la couverture
+> opérateur.
 
 ---
 
