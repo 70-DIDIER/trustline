@@ -4,6 +4,9 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.appareils.services import resoudre_appareil
+from apps.historique.models import TypeVerification
+from apps.historique.services import enregistrer_verification
 from apps.messages.serializers import (
     AnalyserMessageSerializer,
     VerdictMessageSerializer,
@@ -19,6 +22,11 @@ class AnalyserMessageView(APIView):
     @extend_schema(
         tags=["Messages"],
         summary="Analyser un SMS / message (moteur de règles)",
+        description=(
+            "Retourne un verdict expliqué : chaque `indice` porte son libellé, son "
+            "poids dans le score et le détail pédagogique affiché à l'utilisateur.\n\n"
+            "Envoyez `X-Device-Id` pour historiser l'analyse."
+        ),
         request=AnalyserMessageSerializer,
         responses={200: VerdictMessageSerializer},
         examples=[
@@ -29,7 +37,10 @@ class AnalyserMessageView(APIView):
             ),
             OpenApiExample(
                 "Faux agent Mobile Money",
-                value={"contenu": "Bonjour je suis agent Flooz, une erreur de depot a ete faite, renvoyez 15000 FCFA au 90112233"},
+                value={
+                    "contenu": "Bonjour je suis agent Flooz, une erreur de depot a ete faite, renvoyez 15000 FCFA au 90112233",
+                    "expediteur": "90112233",
+                },
                 request_only=True,
             ),
             OpenApiExample(
@@ -42,6 +53,19 @@ class AnalyserMessageView(APIView):
     def post(self, request):
         entree = AnalyserMessageSerializer(data=request.data)
         entree.is_valid(raise_exception=True)
+        contenu = entree.validated_data["contenu"]
 
-        verdict = analyser_message(entree.validated_data["contenu"], source="api")
-        return Response(VerdictMessageSerializer(verdict).data)
+        verdict = analyser_message(
+            contenu,
+            source="api",
+            expediteur=entree.validated_data.get("expediteur", ""),
+        )
+
+        donnees = VerdictMessageSerializer(verdict).data
+        enregistrer_verification(
+            resoudre_appareil(request),
+            type_verification=TypeVerification.MESSAGE,
+            cible=contenu,
+            verdict=donnees,
+        )
+        return Response(donnees)

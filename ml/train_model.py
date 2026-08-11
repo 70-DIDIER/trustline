@@ -34,6 +34,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
+# La console Windows est en cp1252 : sans cela, les emoji des messages de fin
+# font planter le script APRÈS l'écriture du modèle, ce qui laisse croire à un
+# échec de l'entraînement.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 import django  # noqa: E402
 
 django.setup()

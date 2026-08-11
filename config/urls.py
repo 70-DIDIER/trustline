@@ -14,6 +14,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
+from apps.appareils.views import AccueilView
 from apps.bot.webhooks import GupshupWebhookView
 from apps.core.views import AnalyseExtensionView, health
 
@@ -41,11 +42,18 @@ urlpatterns = [
         name="swagger-ui",
     ),
 
+    # --- Application mobile : identité anonyme + écran d'accueil ---
+    path("api/appareils/", include("apps.appareils.urls")),
+    path("api/accueil/", AccueilView.as_view(), name="accueil"),
+
     # --- Feature apps ---
     path("api/numeros/", include("apps.numeros.urls")),
     path("api/messages/", include("apps.messages.urls")),
     path("api/liens/", include("apps.liens.urls")),
     path("api/signalements/", include("apps.signalements.urls")),
+    path("api/historique/", include("apps.historique.urls")),
+    path("api/vigie/", include("apps.vigie.urls")),
+    path("api/", include("apps.veille.urls")),
     path("api/ussd/", include("apps.ussd.urls")),
     path("api/bot/", include("apps.bot.urls")),
     path("api/", include("apps.moderation.urls")),

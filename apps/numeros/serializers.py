@@ -1,7 +1,7 @@
 """Serializers for the numeros endpoints."""
 from rest_framework import serializers
 
-from apps.core.constants import NiveauRisque
+from apps.core.serializers import VerdictSerializer
 from apps.numeros.models import Numero
 
 
@@ -16,19 +16,18 @@ class VerifierNumeroSerializer(serializers.Serializer):
         return value
 
 
-class VerdictNumeroSerializer(serializers.Serializer):
+class VerdictNumeroSerializer(VerdictSerializer):
     """Full verdict returned for a phone number."""
 
     numero = serializers.CharField()
-    score = serializers.IntegerField(min_value=0, max_value=100)
-    niveau_risque = serializers.ChoiceField(choices=NiveauRisque.choices)
+    numero_formate = serializers.CharField()
     est_liste_blanche = serializers.BooleanField()
     organisation = serializers.CharField(allow_null=True)
     nombre_signalements = serializers.IntegerField()
+    nombre_declarants = serializers.IntegerField(
+        help_text="Personnes distinctes ayant signalé ce numéro (anti-abus)."
+    )
     date_dernier_signalement = serializers.DateTimeField(allow_null=True)
-    categories = serializers.ListField(child=serializers.CharField())
-    indices = serializers.ListField(child=serializers.CharField())
-    recommandation = serializers.CharField()
 
 
 class NumeroModelSerializer(serializers.ModelSerializer):

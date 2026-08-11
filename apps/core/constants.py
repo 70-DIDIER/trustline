@@ -32,6 +32,7 @@ class CategorieCode(models.TextChoices):
     FAUX_CONCOURS = "faux_concours", "Faux concours / faux gain"
     FAUX_RECRUTEMENT = "faux_recrutement", "Faux recrutement"
     USURPATION_IDENTITE = "usurpation_identite", "Usurpation d'identité"
+    FAUX_SERVICE_CLIENT = "faux_service_client", "Faux service client"
     DEMANDE_OTP_PIN = "demande_otp_pin", "Demande de code OTP / PIN"
     AUTRE = "autre", "Autre"
 
@@ -52,6 +53,7 @@ CATEGORIES_PAR_DEFAUT = [
     (CategorieCode.FAUX_CONCOURS, "Faux concours ou promesse de gain"),
     (CategorieCode.FAUX_RECRUTEMENT, "Faux recrutement / fausse offre d'emploi"),
     (CategorieCode.USURPATION_IDENTITE, "Usurpation d'identité (service officiel)"),
+    (CategorieCode.FAUX_SERVICE_CLIENT, "Faux service client / faux agent"),
     (CategorieCode.DEMANDE_OTP_PIN, "Demande de code OTP / PIN / mot de passe"),
     (CategorieCode.AUTRE, "Autre type d'arnaque"),
 ]

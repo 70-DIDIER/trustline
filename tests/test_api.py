@@ -97,6 +97,38 @@ def test_analyser_lien_raccourci_suspect(client):
     assert data["score"] >= 30
 
 
+def test_typosquat_de_marque_locale_est_a_haut_risque(client):
+    """Le motif le plus courant : la marque est DANS le domaine acheté."""
+    reponse = client.post(
+        "/api/liens/analyser/",
+        {"url": "http://mixx-verification-tg.xyz/login"},
+        format="json",
+    )
+    data = reponse.json()
+
+    assert data["niveau_risque"] == "eleve"
+    codes = {indice["code"] for indice in data["indices"]}
+    assert "typosquat_marque" in codes
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        # Un suffixe public en deux parties n'est pas un empilement de
+        # sous-domaines : les sites institutionnels ne doivent pas être signalés.
+        "https://www.service-public.gouv.tg/demarches",
+        "https://mail.google.com/mail",
+        "https://www.togocom.tg",
+    ],
+)
+def test_sites_legitimes_ne_declenchent_aucun_indice(client, url):
+    reponse = client.post("/api/liens/analyser/", {"url": url}, format="json")
+    data = reponse.json()
+
+    assert data["niveau_risque"] == "faible"
+    assert data["indices"] == []
+
+
 def test_ussd_menu_principal(client):
     reponse = client.post("/api/ussd/simulate/", {"texte": ""}, format="json")
     assert reponse.status_code == 200

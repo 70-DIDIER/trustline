@@ -40,7 +40,8 @@ def analyser_pour_bot(texte: str, source: str = "bot") -> dict:
     lignes = [f"{_EMOJI[niveau]} {_ENTETE[niveau]} ({verdict['score']}/100)"]
     if verdict["indices"]:
         lignes.append("")
-        lignes.extend(f"• {indice}" for indice in verdict["indices"])
+        # Verdicts carry structured indices; a chat reply only needs the headline.
+        lignes.extend(f"• {indice['libelle']}" for indice in verdict["indices"])
     lignes.append("")
     lignes.append(verdict["recommandation"])
 
@@ -99,7 +100,12 @@ def _cta_whatsapp(niveau: str) -> str:
 
 
 # Indices internes/techniques à ne pas montrer à l'utilisateur final.
-_INDICES_TECHNIQUES = {"Score renforcé par le modèle d'apprentissage."}
+#
+# On filtre sur le CODE et non sur le libellé : le libellé est du texte
+# d'affichage, susceptible d'être reformulé. Il l'a d'ailleurs été — le filtre
+# visait « Score renforcé… » quand le moteur émet « Score confirmé… » — et
+# l'indice technique repassait donc en clair dès l'activation du modèle.
+_INDICES_TECHNIQUES = {"modele_ml"}
 
 
 def analyser_pour_whatsapp(texte: str, source: str = "whatsapp") -> dict:
@@ -110,7 +116,12 @@ def analyser_pour_whatsapp(texte: str, source: str = "whatsapp") -> dict:
     verdict = analyser_message(texte, source=source)
     niveau = verdict["niveau_risque"]
     nom = settings.TRUSTLINE_NOM
-    indices = [i for i in verdict["indices"] if i not in _INDICES_TECHNIQUES]
+    # Verdicts carry structured indices; only the headline is shown here.
+    indices = [
+        indice["libelle"]
+        for indice in verdict["indices"]
+        if indice["code"] not in _INDICES_TECHNIQUES
+    ]
 
     lignes = [f"{_EMOJI[niveau]} *{nom}* — {_ENTETE[niveau]} ({verdict['score']}/100)"]
     # Les puces (raisons) n'ont de sens que si le message est à risque.

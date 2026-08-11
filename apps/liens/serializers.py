@@ -1,7 +1,7 @@
 """Serializers for the link analysis endpoint."""
 from rest_framework import serializers
 
-from apps.core.constants import NiveauRisque
+from apps.core.serializers import VerdictSerializer
 
 
 class AnalyserLienSerializer(serializers.Serializer):
@@ -15,12 +15,8 @@ class AnalyserLienSerializer(serializers.Serializer):
         return value
 
 
-class VerdictLienSerializer(serializers.Serializer):
+class VerdictLienSerializer(VerdictSerializer):
     """Verdict returned for a URL."""
 
     url = serializers.CharField()
     domaine = serializers.CharField(allow_blank=True)
-    score = serializers.IntegerField(min_value=0, max_value=100)
-    niveau_risque = serializers.ChoiceField(choices=NiveauRisque.choices)
-    indices = serializers.ListField(child=serializers.CharField())
-    recommandation = serializers.CharField()
