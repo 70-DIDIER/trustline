@@ -1,10 +1,10 @@
 # === Trustline (TOGOSHIELD) backend — dependencies ===
 # Web framework + API
-Django>=5.0,<5.2
-djangorestframework>=3.15,<3.16
+Django>=5.1,<5.2
+djangorestframework>=3.15,<3.17
 
 # Auth JWT (endpoints admin / modération)
-djangorestframework-simplejwt>=5.3,<5.4
+djangorestframework-simplejwt>=5.3,<5.6
 
 # Documentation OpenAPI / Swagger auto-générée
 drf-spectacular>=0.27,<0.29
@@ -13,21 +13,22 @@ drf-spectacular>=0.27,<0.29
 django-environ>=0.11,<0.12
 
 # Cache / rate limiting — Redis si dispo, sinon fallback LocMem (voir settings.py)
-django-redis>=5.4,<5.5
+# NB : django-redis 7 exige Django>=5.2, on reste donc sur la série 5.x.
+django-redis>=5.4,<6.0
 redis>=5.0,<6.0
 
-# Driver PostgreSQL 18 (fallback SQLite par défaut si DATABASE_URL non défini)
+# Driver PostgreSQL — SEUL moteur supporté (plus de fallback SQLite).
 psycopg[binary]>=3.1,<4.0
 
-# CORS (extension Chrome + Web Next.js)
-django-cors-headers>=4.3,<4.5
+# CORS (application mobile, extension Chrome, front Web)
+django-cors-headers>=4.3,<4.8
 
 # Appels HTTP sortants (webhook WhatsApp Gupshup)
 requests>=2.31,<3.0
 
 # Tests
-pytest>=8.0,<9.0
-pytest-django>=4.8,<4.10
+pytest>=8.0,<10.0
+pytest-django>=4.8,<4.12
 
 # NB : scikit-learn n'est PAS inclus pour l'instant.
 # L'interface ML (MoteurDetection.ml_model) est prête à recevoir le modèle

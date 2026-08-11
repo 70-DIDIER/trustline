@@ -2,11 +2,9 @@
 Django settings for the Trustline (TOGOSHIELD) backend.
 
 Configuration is driven by environment variables through ``django-environ``.
-Sensible local defaults are provided so a teammate can clone the repo and run
-the server with zero external services:
 
-* DATABASE_URL defaults to a local SQLite file (PostgreSQL used when the URL
-  is provided in ``.env``).
+* DATABASE_URL points at **PostgreSQL** — it is the only supported engine.
+  Copy ``.env.example`` to ``.env`` and adapt the credentials.
 * CACHE_URL defaults to an in-memory cache (Redis used when the URL is
   provided). DRF throttling works with either backend.
 """
@@ -14,6 +12,8 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from corsheaders.defaults import default_headers
+from django.core.exceptions import ImproperlyConfigured
 
 # ---------------------------------------------------------------------------
 # Paths & environment
@@ -56,12 +56,16 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "apps.core",
     "apps.scoring",
+    "apps.appareils",
     "apps.numeros",
     "apps.signalements",
     # Custom AppConfig sets label="messages_app" to avoid clashing with
     # django.contrib.messages (see apps/messages/apps.py).
     "apps.messages.apps.MessagesConfig",
     "apps.liens",
+    "apps.historique",
+    "apps.veille",
+    "apps.vigie",
     "apps.ussd",
     "apps.bot",
     "apps.moderation",
@@ -102,14 +106,21 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 # ---------------------------------------------------------------------------
-# Database — PostgreSQL when DATABASE_URL is set, SQLite fallback otherwise
+# Database — PostgreSQL only (no SQLite fallback)
 # ---------------------------------------------------------------------------
 DATABASES = {
     "default": env.db(
         "DATABASE_URL",
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        default="postgres://postgres:postgres@localhost:5432/trustline",
     )
 }
+DATABASES["default"].setdefault("CONN_MAX_AGE", env.int("CONN_MAX_AGE", default=60))
+
+if not DATABASES["default"]["ENGINE"].endswith("postgresql"):
+    raise ImproperlyConfigured(
+        "Trustline requires PostgreSQL. Set DATABASE_URL to a postgres:// URL "
+        f"(got ENGINE={DATABASES['default']['ENGINE']!r})."
+    )
 
 # ---------------------------------------------------------------------------
 # Cache — Redis when CACHE_URL is set, in-memory fallback otherwise
@@ -191,6 +202,12 @@ SPECTACULAR_SETTINGS = {
     "CONTACT": {"name": "Équipe Trustline", "email": "contact@trustline.tg"},
     "TAGS": [
         {"name": "Système", "description": "Santé du service."},
+        {"name": "Appareils", "description": "Identité anonyme de l'appareil mobile (X-Device-Id) et profil."},
+        {"name": "Accueil", "description": "Agrégat unique alimentant l'écran d'accueil de l'application mobile."},
+        {"name": "Historique", "description": "Historique des vérifications d'un appareil."},
+        {"name": "Alertes", "description": "Campagnes d'arnaque en cours (veille communautaire)."},
+        {"name": "Conseils", "description": "Fiches de prévention servies à l'application."},
+        {"name": "Mode Vigie", "description": "Catalogue de signaux analysés localement + sessions d'écoute."},
         {"name": "Numéros", "description": "Vérification et consultation des numéros (liste blanche + réputation)."},
         {"name": "Messages", "description": "Analyse de SMS / messages par le moteur de détection."},
         {"name": "Liens", "description": "Analyse d'URL / sites (extension navigateur)."},
@@ -200,6 +217,12 @@ SPECTACULAR_SETTINGS = {
         {"name": "WhatsApp (Gupshup)", "description": "Webhook WhatsApp entrant via Gupshup Sandbox."},
         {"name": "Statistiques", "description": "Agrégats pour le dashboard."},
     ],
+    # Several serializers expose the same choice sets under different field
+    # names; pin the generated enum names so clients stay stable.
+    "ENUM_NAME_OVERRIDES": {
+        "CategorieArnaqueEnum": "apps.core.constants.CategorieCode.choices",
+        "NiveauRisqueEnum": "apps.core.constants.NiveauRisque.choices",
+    },
     "SWAGGER_UI_SETTINGS": {
         "docExpansion": "list",
         "defaultModelsExpandDepth": 0,
@@ -211,6 +234,9 @@ SPECTACULAR_SETTINGS = {
 # CORS (extension Chrome + Web front-end). Permissive in dev.
 # ---------------------------------------------------------------------------
 CORS_ALLOW_ALL_ORIGINS = env("CORS_ALLOW_ALL_ORIGINS")
+
+# The mobile app identifies itself with an anonymous device UUID.
+CORS_ALLOW_HEADERS = list(default_headers) + ["x-device-id", "x-app-version"]
 
 # ---------------------------------------------------------------------------
 # Sécurité production (HTTPS)

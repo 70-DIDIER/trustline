@@ -16,15 +16,15 @@ messagerie) pour ne pas exclure les utilisateurs sans smartphone.
 | Élément | Choix |
 |---|---|
 | Framework | Django 5 + Django REST Framework |
-| Base de données | PostgreSQL 18 (**fallback SQLite** par défaut) |
+| Base de données | **PostgreSQL** (obligatoire — plus de fallback SQLite) |
 | Cache / rate limiting | Redis (**fallback cache mémoire** par défaut) |
 | Auth API (admin/modération) | JWT (`djangorestframework-simplejwt`) |
 | Documentation API | `drf-spectacular` (Swagger / OpenAPI) |
 | Variables d'env | `django-environ` |
 
-> ⚙️ **Sans Docker.** Le projet tourne en local directement. Grâce aux fallbacks,
-> un coéquipier peut cloner et lancer le serveur en 2 minutes **sans installer
-> PostgreSQL ni Redis**. Ceux-ci se branchent plus tard via `.env`, sans changer le code.
+> ⚙️ **Sans Docker.** Le projet tourne en local directement. Seul PostgreSQL est
+> requis ; Redis reste optionnel (le cache mémoire suffit en développement et le
+> rate limiting DRF fonctionne quand même).
 
 ---
 
@@ -39,30 +39,40 @@ python -m venv .venv
 # 2. Dépendances
 pip install -r requirements.txt
 
-# 3. Configuration (optionnel — des défauts sains existent)
+# 3. Configuration — DATABASE_URL est obligatoire
 copy .env.example .env            # Windows
 # cp .env.example .env            # Linux / macOS
+# puis renseignez DATABASE_URL dans .env
 
-# 4. Base de données + données de démo
+# 4. Créer la base PostgreSQL (une seule fois)
+createdb -U postgres trustline
+# ou : psql -U postgres -c "CREATE DATABASE trustline;"
+
+# 5. Migrations + données de démo
 python manage.py migrate
 python manage.py seed_demo_data   # arnaques Mobile Money togolaises réalistes
 
-# 5. Compte administrateur (dashboard + endpoints protégés)
+# 6. Compte administrateur (dashboard + endpoints protégés)
 python manage.py createsuperuser
 
-# 6. Lancer le serveur
+# 7. Lancer le serveur
 python manage.py runserver
 ```
 
 Le serveur tourne sur <http://127.0.0.1:8000/>.
 
-### Passer à PostgreSQL / Redis (optionnel)
-Dans `.env`, décommentez :
+### Base de données
+`DATABASE_URL` doit pointer sur PostgreSQL — le serveur refuse de démarrer
+autrement :
 ```env
 DATABASE_URL=postgres://USER:PASSWORD@localhost:5432/trustline
+```
+
+### Brancher Redis (optionnel)
+```env
 CACHE_URL=redis://127.0.0.1:6379/1
 ```
-puis relancez `migrate`. Aucun changement de code nécessaire.
+Aucun changement de code nécessaire.
 
 ---
 
@@ -75,28 +85,82 @@ puis relancez `migrate`. Aucun changement de code nécessaire.
 ### Format de réponse normalisé (tous les verdicts)
 ```json
 {
-  "score": 0-100,
+  "score": 0,
   "niveau_risque": "faible | suspect | eleve",
-  "indices": ["raisons explicatives…"],
-  "recommandation": "conseil court à afficher"
+  "indices": [
+    {
+      "code": "demande_otp_pin",
+      "libelle": "Demande d'un code OTP / PIN (jamais légitime).",
+      "poids": 45,
+      "detail": "Un code reçu par SMS valide VOTRE opération, jamais celle d'un tiers…",
+      "categorie": "demande_otp_pin"
+    }
+  ],
+  "recommandation": "conseil court (USSD, bot)",
+  "explication": "narration affichée sur l'écran de résultat",
+  "action_recommandee": "le geste concret à faire maintenant",
+  "categories": ["demande_otp_pin"],
+  "confiance": 0.73,
+  "duree_ms": 12
 }
 ```
+
+Chaque **indice est structuré** : l'application mobile affiche le libellé, le
+poids exact dans le score et l'explication pédagogique. Aucun verdict n'est une
+boîte noire.
+
+### Identité de l'application mobile
+
+L'application n'a ni compte ni mot de passe. Au premier lancement elle génère un
+UUID aléatoire, le stocke localement et l'envoie dans l'en-tête **`X-Device-Id`**
+sur chaque requête. C'est le seul lien entre un appareil et son historique, ses
+signalements et ses compteurs — aucune donnée personnelle n'est collectée.
+
+Les endpoints marqués 🔑 ci-dessous exigent cet en-tête ; ceux marqués 🔓
+l'utilisent s'il est présent (pour historiser) mais fonctionnent sans, afin de
+continuer à servir l'extension navigateur, l'USSD et les bots.
 
 ### Endpoints principaux (P0)
 
 | Méthode | Endpoint | Rôle |
 |---|---|---|
 | `GET`  | `/api/health/` | Vérifier que le service tourne |
-| `POST` | `/api/numeros/verifier/` | Vérifier un numéro (liste blanche + réputation) |
+| `POST` | `/api/numeros/verifier/` 🔓 | Vérifier un numéro (liste blanche + réputation) |
 | `GET`  | `/api/numeros/{numero}/` | Consulter un numéro en base |
-| `POST` | `/api/messages/analyser/` | Analyser un SMS / message |
-| `POST` | `/api/liens/analyser/` | Analyser un lien / site (extension Chrome) |
-| `POST` | `/api/signalements/` | Signaler + mettre à jour la réputation |
+| `POST` | `/api/messages/analyser/` 🔓 | Analyser un SMS / message |
+| `POST` | `/api/liens/analyser/` 🔓 | Analyser un lien / site (mobile + extension) |
+| `POST` | `/api/signalements/` 🔓 | Signaler + mettre à jour la réputation |
 | `POST` | `/api/ussd/simulate/` | Simuler un parcours USSD |
 | `POST` | `/api/bot/verifier/` | Webhook bot (verdict conversationnel) |
 | `POST` | `/api/webhook/gupshup/` | Webhook WhatsApp entrant (Gupshup) — voir section dédiée |
 | `GET`  | `/api/stats/` | Statistiques agrégées (dashboard) |
 | `POST` | `/api/token/` | Obtenir un token JWT (admin/modération) |
+
+### Endpoints de l'application mobile
+
+| Méthode | Endpoint | Rôle |
+|---|---|---|
+| `POST`   | `/api/appareils/` 🔑 | Enregistrer l'appareil (idempotent, au démarrage) |
+| `GET`    | `/api/appareils/moi/` 🔑 | Profil anonyme + compteurs personnels et communautaires |
+| `GET`    | `/api/accueil/` 🔓 | Agrégat de l'écran d'accueil, en un seul appel |
+| `GET`    | `/api/historique/` 🔑 | Historique des vérifications (paginé, filtrable) |
+| `DELETE` | `/api/historique/{id}/` 🔑 | Supprimer une entrée |
+| `DELETE` | `/api/historique/vider/` 🔑 | Effacer tout l'historique de l'appareil |
+| `GET`    | `/api/signalements/mes/` 🔑 | Mes signalements et leur statut de modération |
+| `GET`    | `/api/alertes/` | Campagnes d'arnaque en cours |
+| `GET`    | `/api/alertes/{id}/` | Détail d'une campagne |
+| `GET`    | `/api/conseils/` | Fiches de prévention |
+| `GET`    | `/api/vigie/signaux/` | Catalogue des signaux analysés **localement** |
+| `POST`   | `/api/vigie/sessions/` 🔑 | Bilan anonymisé d'une session Mode Vigie |
+
+#### Mode Vigie : pourquoi le catalogue est servi, pas l'audio
+
+`/api/vigie/signaux/` renvoie les libellés **et les expressions régulières** à
+appliquer. Le téléphone transcrit l'appel, compare le texte localement, puis
+oublie tout ; seuls les **codes** des signaux repérés remontent via
+`/api/vigie/sessions/`. Le serveur recalcule le score à partir de ses propres
+poids. Aucun son ni aucune transcription n'atteint jamais Trustline, et la
+détection reste pourtant pilotable depuis le back-office.
 
 ### Exemples (PowerShell / curl)
 ```bash
@@ -263,17 +327,24 @@ config/                 # settings, urls, wsgi/asgi
 apps/
   core/                 # référentiels (catégories, liste blanche, logs) + utils partagés
   scoring/              # MoteurDetection (règles + lexique éwé + interface ML)
+  appareils/            # identité anonyme X-Device-Id, profil, agrégat d'accueil
   numeros/              # vérification / consultation de numéros
   signalements/         # signalement communautaire + réputation
   messages/             # analyse SMS / messages (label "messages_app")
-  liens/                # analyse de liens / sites (extension Chrome)
+  liens/                # analyse de liens / sites (mobile + extension Chrome)
+  historique/           # historique des vérifications, par appareil
+  veille/               # alertes (campagnes) et conseils servis à l'application
+  vigie/                # Mode Vigie : catalogue de signaux + sessions anonymisées
   ussd/                 # simulateur USSD
   bot/                  # bot messagerie : services.py (logique partagée) + webhooks.py (Gupshup)
   moderation/           # API admin REST (JWT) : signalements, numéros, liste blanche, stats
 ml/                     # entraînement du modèle ML (train_model.py, dataset.csv) — optionnel
-tests/                  # tests pytest (scoring, API end-to-end, webhook Gupshup, ML)
+tests/                  # tests pytest (scoring, API, API mobile, webhook Gupshup, ML)
 DEPLOY.md               # runbook de déploiement VPS (Nginx + Gunicorn + HTTPS)
 ```
+
+L'application mobile Flutter vit dans le dépôt voisin `trust_line/` et consomme
+exclusivement ces endpoints — elle ne contient plus aucune donnée simulée.
 
 ---
 

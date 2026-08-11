@@ -2,7 +2,9 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from apps.moderation.admin_views import (
+    AlerteAdminViewSet,
     CategorieArnaqueViewSet,
+    ConseilAdminViewSet,
     ListeBlancheViewSet,
     LogAnalyseAdminViewSet,
     MessageAdminViewSet,
@@ -21,6 +23,8 @@ router.register("liste-blanche", ListeBlancheViewSet, basename="admin-liste-blan
 router.register("messages", MessageAdminViewSet, basename="admin-messages")
 router.register("logs", LogAnalyseAdminViewSet, basename="admin-logs")
 router.register("categories", CategorieArnaqueViewSet, basename="admin-categories")
+router.register("alertes", AlerteAdminViewSet, basename="admin-alertes")
+router.register("conseils", ConseilAdminViewSet, basename="admin-conseils")
 
 urlpatterns = [
     # Dashboard summary (public — widget de synthèse).

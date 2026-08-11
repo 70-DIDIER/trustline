@@ -6,6 +6,7 @@ from apps.core.models import CategorieArnaque, ListeBlanche, LogAnalyse
 from apps.messages.models import Message
 from apps.numeros.models import Numero
 from apps.signalements.models import Signalement
+from apps.veille.models import Alerte, Conseil
 
 
 class SignalementAdminSerializer(serializers.ModelSerializer):
@@ -17,6 +18,7 @@ class SignalementAdminSerializer(serializers.ModelSerializer):
         model = Signalement
         fields = [
             "id",
+            "reference",
             "type_cible",
             "cible",
             "numero",
@@ -24,6 +26,7 @@ class SignalementAdminSerializer(serializers.ModelSerializer):
             "categorie_libelle",
             "declarant",
             "commentaire",
+            "montant_perdu",
             "statut",
             "date_creation",
         ]
@@ -97,3 +100,44 @@ class CategorieArnaqueSerializer(serializers.ModelSerializer):
     class Meta:
         model = CategorieArnaque
         fields = ["id", "code", "libelle", "description"]
+
+
+class AlerteAdminSerializer(serializers.ModelSerializer):
+    """Full write access to campaigns from the back-office."""
+
+    class Meta:
+        model = Alerte
+        fields = [
+            "id",
+            "titre",
+            "description",
+            "recommandation",
+            "niveau_risque",
+            "canal",
+            "categorie",
+            "nombre_signalements",
+            "epinglee",
+            "active",
+            "date_debut",
+            "date_maj",
+        ]
+        read_only_fields = ["date_maj"]
+
+
+class ConseilAdminSerializer(serializers.ModelSerializer):
+    """Full write access to prevention cards from the back-office."""
+
+    class Meta:
+        model = Conseil
+        fields = [
+            "id",
+            "titre",
+            "resume",
+            "points",
+            "icone",
+            "categorie",
+            "ordre",
+            "actif",
+            "date_maj",
+        ]
+        read_only_fields = ["date_maj"]

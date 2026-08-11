@@ -22,9 +22,12 @@ class Regle:
 
     nom: str
     poids: int
-    libelle: str  # explanation surfaced to the user (an "indice")
+    libelle: str  # short headline surfaced to the user (an "indice")
     motifs: list[str]  # regex patterns (matched against normalised text)
     categorie: str = CategorieCode.AUTRE
+    # Longer "why does this matter" sentence shown under the headline in the
+    # mobile app. Keeping it next to the rule means no verdict is a black box.
+    detail: str = ""
     _compiles: list = field(default_factory=list, repr=False)
 
     def __post_init__(self):
@@ -75,6 +78,11 @@ REGLES: list[Regle] = [
         poids=45,
         libelle="Demande d'un code OTP / PIN / code secret (jamais légitime).",
         categorie=CategorieCode.DEMANDE_OTP_PIN,
+        detail=(
+            "Un code reçu par SMS sert à valider VOTRE opération, jamais celle "
+            "d'un tiers. Aucun opérateur, aucune banque, aucun agent ne vous le "
+            "demandera : la demande elle-même est la preuve de l'arnaque."
+        ),
         motifs=[
             r"\botp\b",
             r"code\s+(?:de\s+)?(?:verification|confirmation|securite|secret|retrait|transaction)",
@@ -95,6 +103,11 @@ REGLES: list[Regle] = [
         poids=20,
         libelle="Pression / urgence artificielle pour vous faire agir vite.",
         categorie=CategorieCode.PHISHING,
+        detail=(
+            "La pression temporelle est là pour vous empêcher de réfléchir ou de "
+            "vérifier auprès du vrai service. Un délai qui expire dans l'heure "
+            "est un signal de manipulation, pas d'efficacité."
+        ),
         motifs=[
             r"immediatement",
             r"dans\s+les?\s+\d+\s*(?:h|heures?|minutes?|min)",
@@ -113,6 +126,11 @@ REGLES: list[Regle] = [
         poids=30,
         libelle="Promesse de gain / faux concours (« vous avez gagné »).",
         categorie=CategorieCode.FAUX_CONCOURS,
+        detail=(
+            "On ne gagne pas à une loterie à laquelle on n'a jamais joué. Aucun "
+            "gain légitime n'exige un paiement, un code ou des frais de dossier "
+            "pour être débloqué."
+        ),
         motifs=[
             r"vous\s+avez\s+gagne",
             r"felicitations?",
@@ -133,6 +151,11 @@ REGLES: list[Regle] = [
         poids=25,
         libelle="Demande d'envoi ou de transfert d'argent.",
         categorie=CategorieCode.FRAUDE_FINANCIERE,
+        detail=(
+            "Sollicitation directe d'un mouvement d'argent. Le scénario le plus "
+            "répandu au Togo est le « dépôt reçu par erreur » : le dépôt n'a "
+            "jamais eu lieu, vous enverriez votre propre argent."
+        ),
         motifs=MOTIFS_ARGENT,
     ),
     Regle(
@@ -140,6 +163,11 @@ REGLES: list[Regle] = [
         poids=20,
         libelle="Se fait passer pour un service officiel (banque / opérateur).",
         categorie=CategorieCode.USURPATION_IDENTITE,
+        detail=(
+            "Le message se réclame d'une institution sans aucune preuve "
+            "d'identité. Le nom affiché d'un expéditeur SMS se falsifie : "
+            "raccrochez et rappelez par un numéro que vous avez cherché vous-même."
+        ),
         # Weight only applies when combined with an action — handled in engine.
         motifs=SERVICES_OFFICIELS,
     ),
@@ -148,6 +176,11 @@ REGLES: list[Regle] = [
         poids=25,
         libelle="Présence d'un lien raccourci ou suspect.",
         categorie=CategorieCode.PHISHING,
+        detail=(
+            "Le lien mène hors des canaux officiels et sa destination réelle est "
+            "masquée. Ces pages imitent l'apparence d'un service légitime pour "
+            "collecter vos identifiants."
+        ),
         motifs=[
             r"bit\.ly",
             r"tinyurl",

@@ -90,6 +90,20 @@ def normaliser_numero(numero: str) -> str:
     return "+" + digits
 
 
+def formater_numero(numero: str) -> str:
+    """Return a human-friendly form of a normalised number: ``+228 90 11 22 33``.
+
+    Non-Togolese or unusual numbers are returned unchanged — better a raw value
+    than a misleading grouping.
+    """
+    numero = (numero or "").strip()
+    if numero.startswith("+" + INDICATIF_TOGO) and len(numero) == 12:
+        local = numero[4:]
+        paires = " ".join(local[i : i + 2] for i in range(0, 8, 2))
+        return f"+{INDICATIF_TOGO} {paires}"
+    return numero
+
+
 _NUMERO_REGEX = re.compile(r"(?:\+?228[\s.-]?)?(?:\d[\s.-]?){8,}")
 
 

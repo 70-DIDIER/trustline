@@ -15,7 +15,9 @@ from apps.core.constants import CategorieCode, StatutSignalement, TypeCible
 from apps.core.models import CategorieArnaque, ListeBlanche, LogAnalyse
 from apps.messages.models import Message
 from apps.moderation.serializers import (
+    AlerteAdminSerializer,
     CategorieArnaqueSerializer,
+    ConseilAdminSerializer,
     ListeBlancheSerializer,
     LogAnalyseSerializer,
     MessageAdminSerializer,
@@ -28,6 +30,7 @@ from apps.numeros.services import invalider_cache_numero
 from apps.signalements.models import Signalement
 from apps.signalements.reputation import mettre_a_jour_numero
 from apps.signalements.services import moderer_signalement
+from apps.veille.models import Alerte, Conseil
 
 
 @extend_schema_view(
@@ -184,3 +187,35 @@ class CategorieArnaqueViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = CategorieArnaqueSerializer
     queryset = CategorieArnaque.objects.all()
     pagination_class = None  # petit référentiel, pas de pagination
+
+
+@extend_schema_view(
+    list=extend_schema(tags=["Admin — Alertes"], summary="Lister les campagnes d'arnaque"),
+    create=extend_schema(tags=["Admin — Alertes"], summary="Publier une alerte"),
+    retrieve=extend_schema(tags=["Admin — Alertes"], summary="Détail d'une alerte"),
+    update=extend_schema(tags=["Admin — Alertes"], summary="Modifier une alerte"),
+    partial_update=extend_schema(tags=["Admin — Alertes"], summary="Modifier partiellement une alerte"),
+    destroy=extend_schema(tags=["Admin — Alertes"], summary="Supprimer une alerte"),
+)
+class AlerteAdminViewSet(viewsets.ModelViewSet):
+    """CRUD des campagnes affichées dans l'application mobile."""
+
+    permission_classes = [IsAdminUser]
+    serializer_class = AlerteAdminSerializer
+    queryset = Alerte.objects.all()
+
+
+@extend_schema_view(
+    list=extend_schema(tags=["Admin — Conseils"], summary="Lister les fiches de prévention"),
+    create=extend_schema(tags=["Admin — Conseils"], summary="Créer une fiche"),
+    retrieve=extend_schema(tags=["Admin — Conseils"], summary="Détail d'une fiche"),
+    update=extend_schema(tags=["Admin — Conseils"], summary="Modifier une fiche"),
+    partial_update=extend_schema(tags=["Admin — Conseils"], summary="Modifier partiellement une fiche"),
+    destroy=extend_schema(tags=["Admin — Conseils"], summary="Supprimer une fiche"),
+)
+class ConseilAdminViewSet(viewsets.ModelViewSet):
+    """CRUD des conseils de sécurité servis à l'application mobile."""
+
+    permission_classes = [IsAdminUser]
+    serializer_class = ConseilAdminSerializer
+    queryset = Conseil.objects.all()

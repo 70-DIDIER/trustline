@@ -33,7 +33,30 @@ class Signalement(models.Model):
         verbose_name="Déclarant (identifiant anonymisé)",
         help_text="Identifiant opaque du déclarant — aucune donnée personnelle.",
     )
+    # Set when the report comes from the mobile app, so a user can follow the
+    # moderation status of their own reports.
+    appareil = models.ForeignKey(
+        "appareils.Appareil",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="signalements",
+    )
+    # Human-readable receipt shown to the reporter ("Référence TL-2026-000042").
+    reference = models.CharField(
+        max_length=24,
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name="Référence",
+    )
     commentaire = models.TextField(blank=True, default="")
+    montant_perdu = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Montant perdu (FCFA)",
+        help_text="Facultatif — permet de chiffrer le préjudice des campagnes.",
+    )
     statut = models.CharField(
         max_length=16,
         choices=StatutSignalement.choices,
@@ -49,3 +72,7 @@ class Signalement(models.Model):
 
     def __str__(self):
         return f"{self.type_cible}:{self.cible} → {self.categorie} ({self.statut})"
+
+    def generer_reference(self) -> str:
+        """Build the public receipt number. Requires the row to be saved."""
+        return f"TL-{self.date_creation:%Y}-{self.pk:06d}"

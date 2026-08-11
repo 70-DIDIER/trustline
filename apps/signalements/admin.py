@@ -10,15 +10,18 @@ from apps.signalements.reputation import mettre_a_jour_numero
 @admin.register(Signalement)
 class SignalementAdmin(admin.ModelAdmin):
     list_display = (
+        "reference",
         "date_creation",
         "type_cible",
         "cible",
         "categorie",
+        "montant_perdu",
         "declarant",
         "statut",
     )
     list_filter = ("statut", "categorie", "type_cible", "date_creation")
-    search_fields = ("cible", "declarant", "commentaire")
+    search_fields = ("reference", "cible", "declarant", "commentaire")
+    readonly_fields = ("reference",)
     date_hierarchy = "date_creation"
     actions = ["marquer_valide", "marquer_conteste", "marquer_rejete"]
 

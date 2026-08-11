@@ -11,7 +11,16 @@ from apps.signalements.reputation import mettre_a_jour_numero
 
 
 @transaction.atomic
-def creer_signalement(*, type_cible, cible, categorie_code, declarant, commentaire=""):
+def creer_signalement(
+    *,
+    type_cible,
+    cible,
+    categorie_code,
+    declarant,
+    commentaire="",
+    montant_perdu=None,
+    appareil=None,
+):
     """Create a Signalement and update the target's reputation if applicable.
 
     Returns a tuple ``(signalement, numero_or_None)``.
@@ -30,8 +39,13 @@ def creer_signalement(*, type_cible, cible, categorie_code, declarant, commentai
         numero_cible=numero_obj,
         categorie=categorie,
         declarant=declarant,
+        appareil=appareil,
         commentaire=commentaire or "",
+        montant_perdu=montant_perdu,
     )
+    # The reference embeds the primary key, so it can only be built post-insert.
+    signalement.reference = signalement.generer_reference()
+    signalement.save(update_fields=["reference"])
 
     if numero_obj is not None:
         mettre_a_jour_numero(numero_obj)

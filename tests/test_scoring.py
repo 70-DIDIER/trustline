@@ -17,7 +17,7 @@ def test_message_arnaque_detecte_otp_et_gain():
     assert resultat.niveau_risque == "eleve"
     assert resultat.score >= 70
     # The main scam signals must be surfaced as indices.
-    joint = " ".join(resultat.indices).lower()
+    joint = " ".join(resultat.libelles_indices).lower()
     assert "otp" in joint or "code" in joint
     assert "gain" in joint or "concours" in joint
 
@@ -76,7 +76,7 @@ def test_nouvelles_formulations_verbales_detectees():
     # Verb forms / phrasings added to the ruleset.
     moteur = MoteurDetection()
     r1 = moteur.analyser("Verifiez votre compte Ecobank sans tarder")
-    assert "verif" in " ".join(r1.indices).lower() or r1.score >= 30
+    assert "verif" in " ".join(r1.libelles_indices).lower() or r1.score >= 30
     r2 = moteur.analyser("Vous etes selectionne pour une recompense de 100000 FCFA")
     assert r2.niveau_risque in {"suspect", "eleve"}
 
@@ -84,7 +84,7 @@ def test_nouvelles_formulations_verbales_detectees():
 def test_montant_avec_accents_et_espaces_toujours_detecte():
     moteur = MoteurDetection()
     resultat = moteur.analyser("Transférez 2.000.000 FCFA sur ce compte")
-    joint = " ".join(resultat.indices).lower()
+    joint = " ".join(resultat.libelles_indices).lower()
     assert "transfert" in joint or "argent" in joint
 
 

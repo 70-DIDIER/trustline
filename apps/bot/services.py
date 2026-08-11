@@ -30,7 +30,8 @@ def analyser_pour_bot(texte: str, source: str = "bot") -> dict:
     lignes = [f"{_EMOJI[niveau]} {_ENTETE[niveau]} ({verdict['score']}/100)"]
     if verdict["indices"]:
         lignes.append("")
-        lignes.extend(f"• {indice}" for indice in verdict["indices"])
+        # Verdicts carry structured indices; a chat reply only needs the headline.
+        lignes.extend(f"• {indice['libelle']}" for indice in verdict["indices"])
     lignes.append("")
     lignes.append(verdict["recommandation"])
 

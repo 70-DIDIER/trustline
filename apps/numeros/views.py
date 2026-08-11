@@ -6,9 +6,12 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.appareils.services import resoudre_appareil
 from apps.core.constants import TypeCible
 from apps.core.services import enregistrer_log
 from apps.core.utils import normaliser_numero
+from apps.historique.models import TypeVerification
+from apps.historique.services import enregistrer_verification
 from apps.numeros.models import Numero
 from apps.numeros.serializers import (
     NumeroModelSerializer,
@@ -26,6 +29,12 @@ class VerifierNumeroView(APIView):
     @extend_schema(
         tags=["Numéros"],
         summary="Vérifier un numéro (liste blanche + réputation)",
+        description=(
+            "Envoyez l'en-tête `X-Device-Id` pour que la vérification soit ajoutée "
+            "à l'historique de l'appareil. Sans cet en-tête, le verdict est rendu "
+            "mais rien n'est historisé.\n\n"
+            "`contexte=appel` marque l'entrée d'historique comme un appel entrant."
+        ),
         request=VerifierNumeroSerializer,
         responses={200: VerdictNumeroSerializer},
         examples=[
@@ -53,7 +62,17 @@ class VerifierNumeroView(APIView):
         verdict = verifier_numero(entree.validated_data["numero"])
         enregistrer_log(TypeCible.NUMERO, verdict["numero"], verdict, source="api")
 
-        return Response(VerdictNumeroSerializer(verdict).data)
+        donnees = VerdictNumeroSerializer(verdict).data
+        est_appel = request.query_params.get("contexte") == "appel"
+        enregistrer_verification(
+            resoudre_appareil(request),
+            type_verification=(
+                TypeVerification.APPEL if est_appel else TypeVerification.NUMERO
+            ),
+            cible=verdict["numero_formate"],
+            verdict=donnees,
+        )
+        return Response(donnees)
 
 
 class NumeroDetailView(APIView):
