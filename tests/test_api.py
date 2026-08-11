@@ -115,3 +115,38 @@ def test_bot_verifier_format_conversationnel(client):
     data = reponse.json()
     assert data["niveau_risque"] in {"suspect", "eleve"}
     assert "reponse" in data
+
+
+def test_extension_analyser_message(client, categories):
+    """L'endpoint unifié de l'extension dispatche vers le moteur de messages."""
+    r = client.post(
+        "/api/extension/analyser/",
+        {"type": "message", "content": "Felicitations vous avez gagne 500000 FCFA, envoyez votre code OTP", "context": "whatsapp"},
+        format="json",
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["type"] == "message"
+    assert body["context"] == "whatsapp"
+    assert body["niveau_risque"] == "eleve"
+    assert body["indices"]  # au moins un signal explicable
+
+
+def test_extension_analyser_url(client):
+    r = client.post(
+        "/api/extension/analyser/",
+        {"type": "url", "content": "http://bit.ly/gagnez", "context": "web"},
+        format="json",
+    )
+    assert r.status_code == 200
+    assert r.json()["type"] == "url"
+    assert "niveau_risque" in r.json()
+
+
+def test_extension_analyser_rejette_contenu_vide(client):
+    r = client.post(
+        "/api/extension/analyser/",
+        {"type": "message", "content": "   ", "context": "web"},
+        format="json",
+    )
+    assert r.status_code == 400

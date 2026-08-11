@@ -1,0 +1,215 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * TrustLine design tokens — direction "white-first premium".
+ * L'UI a sa propre identité, distincte des couleurs du logo.
+ * Blanc dominant (70-80%), gris (10-15%), accent bleu réservé aux
+ * actions/liens/états actifs (5-10%). Vert/rouge/orange = sémantique pure.
+ */
+:root {
+  /* Surfaces — quatre couches réelles de profondeur, du sol teinté à la carte
+     blanche nette, plus une couche sombre pour les moments de contraste. */
+  /* Trois niveaux clairs NETTEMENT distincts (rail → carte blanche → bande teintée),
+     pensés pour que l'alternance blanc/teinté se lise vraiment. */
+  --color-ground: #f5f7fa;        /* rail de page — clair, connectif */
+  --color-background: #ffffff;    /* cartes & bandes nettes — flottent sur le rail */
+  --color-surface: #eef2f8;       /* pistes/chips nichés dans une carte */
+  --color-surface-2: #e4eaf3;     /* éléments imbriqués plus profonds */
+  --color-surface-alt: #e6ecf6;   /* bande teintée d'alternance — perceptible d'un coup d'œil */
+  --color-surface-dark: #101828;  /* section sombre — contraste dramatique, données/produit */
+  --color-surface-dark-2: #1b2333;/* cartes/surfaces sur fond sombre */
+  --color-border: #e1e7f0;
+  --color-border-strong: #cfd7e4;
+
+  /* Texte */
+  --color-text: #111827;
+  --color-text-secondary: #475467;
+  --color-text-muted: #667085;
+
+  /* Accent principal — bleu profond, utilisé avec parcimonie (actions, liens, focus) */
+  --color-primary: #2457d6;
+  --color-primary-dark: #1b3e9e;
+  --color-primary-light: #eaf0ff;
+  --color-primary-hover: #1d49bd;
+
+  /* Sémantique — vert de marque (succès/sécurité), ambre (attention), rouge (danger) */
+  --color-success: #18b77a;
+  --color-success-light: #e7f7f0;
+  --color-warning: #c98a16;
+  --color-warning-light: #fbf3e2;
+  --color-danger: #d64545;
+  --color-danger-light: #fcecec;
+  --color-info: #2457d6;
+  --color-info-light: #eaf0ff;
+
+  /* Inversion (sections sombres de contraste) */
+  --color-inverse-bg: #101828;
+  --color-inverse-surface: #1b2333;
+  --color-inverse-text: #ffffff;
+  --color-inverse-muted: rgba(233, 238, 245, 0.66);
+  --color-inverse-border: rgba(255, 255, 255, 0.10);
+
+  /* Radius — hiérarchie contrôlée */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Ombres — rares, réelles ; profondeur douce et portée pour lever les cartes du sol teinté */
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 2px 4px rgba(16, 24, 40, 0.04), 0 12px 32px -8px rgba(16, 24, 40, 0.14);
+  --shadow-lg: 0 4px 8px rgba(16, 24, 40, 0.05), 0 24px 56px -12px rgba(16, 24, 40, 0.20);
+
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Alias courts utilisés par les composants existants — mêmes valeurs, noms de commodité */
+  --bg: var(--color-background);
+  --surface: var(--color-surface);
+  --surface-2: var(--color-surface-2);
+  --border: var(--color-border);
+  --border-strong: var(--color-border-strong);
+  --text: var(--color-text);
+  --text-muted: var(--color-text-muted);
+  --shadow: var(--shadow-sm);
+
+  --brand: var(--color-primary);
+  --brand-strong: var(--color-primary-dark);
+  --brand-soft: #6690e8;
+  --brand-on: #ffffff;
+
+  --danger: var(--color-danger);
+  --danger-bg: var(--color-danger-light);
+  --warn: var(--color-warning);
+  --warn-bg: var(--color-warning-light);
+  --safe: var(--color-success);
+  --safe-bg: var(--color-success-light);
+  --unknown: var(--color-info);
+  --unknown-bg: var(--color-info-light);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+body {
+  background: var(--color-ground);
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Fond de page teinté (utilitaire explicite pour les <main> qui doivent laisser
+   respirer le sol plutôt que poser une bande blanche). */
+.bg-ground { background: var(--color-ground); }
+
+::selection {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---------- Tokens de couleur en classes utilitaires (source unique de vérité) ---------- */
+.bg-app { background: var(--bg); }
+.bg-surface { background: var(--surface); }
+.bg-surface-2 { background: var(--surface-2); }
+.bg-surface-alt { background: var(--color-surface-alt); }
+.border-base { border-color: var(--border); }
+.border-strong { border-color: var(--border-strong); }
+.text-body { color: var(--text); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-muted { color: var(--text-muted); }
+
+.text-brand { color: var(--brand); }
+.bg-brand { background: var(--brand); color: var(--brand-on); }
+.bg-brand-strong { background: var(--brand-strong); color: var(--brand-on); }
+.bg-brand-light { background: var(--color-primary-light); color: var(--color-primary-dark); }
+.text-on-brand { color: var(--brand-on); }
+.text-on-brand-muted { color: var(--brand-on); opacity: 0.8; }
+
+.text-danger { color: var(--danger); }
+.bg-danger-soft { background: var(--danger-bg); color: var(--danger); }
+.text-warn { color: var(--warn); }
+.bg-warn-soft { background: var(--warn-bg); color: var(--warn); }
+.text-safe { color: var(--safe); }
+.bg-safe-soft { background: var(--safe-bg); color: var(--safe); }
+.text-unknown { color: var(--unknown); }
+.bg-unknown-soft { background: var(--unknown-bg); color: var(--unknown); }
+
+/* Sections sombres de contraste (data / produit / CTA) */
+.bg-inverse { background: var(--color-inverse-bg); color: var(--color-inverse-text); }
+.bg-inverse-surface { background: var(--color-inverse-surface); }
+.text-inverse-muted { color: var(--color-inverse-muted); }
+.border-inverse { border-color: var(--color-inverse-border); }
+/* Dégradé sombre subtil — évite l'aplat parfaitement plat sur les grandes bandes */
+.bg-inverse-grad {
+  background: radial-gradient(120% 120% at 50% -10%, #17233b 0%, var(--color-inverse-bg) 55%);
+  color: var(--color-inverse-text);
+}
+
+.tabular-nums { font-variant-numeric: tabular-nums; }
+.shadow-soft { box-shadow: var(--shadow-sm); }
+.shadow-elevated { box-shadow: var(--shadow-md); }
+.shadow-floating { box-shadow: var(--shadow-lg); }
+
+/* ---------- Motion — discipline Apple-level : opacity/transform uniquement ----------
+   Robustesse : l'entrée est pilotée par une animation `both` qui se termine TOUJOURS
+   sur l'état visible. Le contenu ne peut jamais rester bloqué à opacity:0 (aucune
+   dépendance à un IntersectionObserver qui n'aurait pas déclenché). Quand JS est actif,
+   le composant Reveal ne pose la classe `is-visible` qu'à l'entrée dans le viewport pour
+   décaler l'animation ; sans JS, `.reveal` joue au chargement. */
+@keyframes tl-reveal {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: none; }
+}
+.reveal {
+  animation: tl-reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.reveal.is-visible {
+  animation: tl-reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal.is-visible { animation: none; opacity: 1; transform: none; }
+}
+
+@keyframes tl-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.tl-ticker-track { animation: tl-marquee 42s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .tl-ticker-track { animation: none; }
+}
+
+@keyframes tl-progress {
+  0% { width: 8%; }
+  50% { width: 65%; }
+  100% { width: 92%; }
+}
+.tl-progress-bar { animation: tl-progress 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .tl-progress-bar { animation: none; width: 92%; }
+}
+
+@keyframes tl-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.tl-pulse { animation: tl-pulse 2.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .tl-pulse { animation: none; }
+}

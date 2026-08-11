@@ -1,0 +1,12 @@
+{
+  "name": "trustline-extension",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Extension navigateur TrustLine — protection anti-arnaque (Manifest V3).",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "lint": "node scripts/lint.mjs",
+    "build": "node scripts/build.mjs"
+  }
+}

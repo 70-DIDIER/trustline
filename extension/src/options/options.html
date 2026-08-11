@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TrustLine — Paramètres</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="head">
+      <div class="brand">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 3v5.2c0 4.4-3 8-7 9-4-1-7-4.6-7-9V6l7-3Z" stroke="#2457d6" stroke-width="1.7" stroke-linejoin="round"/></svg>
+        <div>
+          <div class="name">TrustLine</div>
+          <div class="tag">Connecter · Protéger · Assurer</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2>Protection</h2>
+      <div class="opts" id="opts"></div>
+    </section>
+
+    <section class="card">
+      <h2>Votre confidentialité</h2>
+      <p class="intro">
+        TrustLine est conçu pour vous protéger, pas pour vous surveiller. Voici précisément
+        ce que fait l'extension — et ce qu'elle ne fait jamais.
+      </p>
+      <div class="privacy">
+        <div class="col ok">
+          <h3>Ce qui est analysé</h3>
+          <ul>
+            <li>Le message ou l'email actuellement <strong>visible</strong>, à la demande</li>
+            <li>L'adresse (URL) d'un lien ou de la page active</li>
+            <li>Un numéro que vous saisissez vous-même</li>
+          </ul>
+        </div>
+        <div class="col ok">
+          <h3>Ce qui reste local</h3>
+          <ul>
+            <li>Vos réglages</li>
+            <li>Votre historique d'analyses (sur cet appareil)</li>
+            <li>Le pré-scan des liens (heuristiques, hors-ligne)</li>
+          </ul>
+        </div>
+        <div class="col no">
+          <h3>Ce qui n'est jamais collecté</h3>
+          <ul>
+            <li>L'intégralité de vos conversations WhatsApp</li>
+            <li>Votre boîte mail complète</li>
+            <li>Vos contacts, cookies, mots de passe</li>
+            <li>Vos frappes clavier, votre écran</li>
+          </ul>
+        </div>
+      </div>
+      <p class="note">
+        Un contenu n'est transmis au serveur TrustLine que lorsque vous lancez une analyse ou
+        un signalement — jamais silencieusement.
+      </p>
+    </section>
+
+    <section class="card danger-zone">
+      <h2>Données locales</h2>
+      <p>Réglages, historique et identifiant anonyme sont stockés uniquement sur cet appareil.</p>
+      <button id="clear-all" class="btn danger">Effacer toutes les données locales</button>
+    </section>
+  </div>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

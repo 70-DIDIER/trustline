@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Espace client — connexion</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; background: #eef2f7; margin: 0; color: #111; }
+    .banner { background: #b91c1c; color: #fff; text-align: center; padding: 6px; font-size: 12px; }
+    .card { max-width: 380px; margin: 60px auto; background: #fff; border-radius: 10px; padding: 28px; box-shadow: 0 10px 30px -12px rgba(0,0,0,.25); }
+    h1 { font-size: 18px; }
+    input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+    button { width: 100%; padding: 11px; background: #123a8f; color: #fff; border: 0; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    p.small { font-size: 12px; color: #555; }
+    a { color: #123a8f; }
+  </style>
+</head>
+<body>
+  <div class="banner">FIXTURE DE DÉMONSTRATION TrustLine — ce n'est pas un vrai site</div>
+  <div class="card">
+    <h1>Vérification de votre compte</h1>
+    <p class="small">Votre compte sera suspendu dans 24h. Confirmez immédiatement vos informations.</p>
+    <form onsubmit="return false">
+      <input type="text" name="identifiant" placeholder="Identifiant" />
+      <input type="password" name="motdepasse" placeholder="Mot de passe" />
+      <input type="text" name="otp" placeholder="Code reçu par SMS (OTP)" autocomplete="one-time-code" />
+      <button type="submit">Se connecter</button>
+    </form>
+    <p class="small" style="margin-top:16px">
+      Lien de « sécurisation » : <a href="http://ecobank-tg.xyz/secure-login/verify">ecobank-tg.xyz/secure-login</a>
+    </p>
+  </div>
+  <!--
+    DÉMO : servez ce dossier en HTTP (voir README) puis cliquez sur le lien ci-dessus.
+    L'extension TrustLine (content script générique) détecte le typosquat + http +
+    chemin de connexion et affiche un avertissement avant navigation.
+  -->
+</body>
+</html>
